@@ -68,4 +68,4 @@ When a command is received, we then need to tell Sonos what to do. For that I us
 
 # Phase Three
 
-Yes, there is a phase three. I have it working but don't have the phone mods completed yet. I'll just say this, it uses a camera, but the camera is inside the phone. I'm really excited about this upcoming feature.
+Yes, there is a phase three. I have it working but don't have the phone mods completed yet. I'll just say this, it uses a camera, but the camera and lens are completely inside the phone. I'm really excited about this upcoming feature.
