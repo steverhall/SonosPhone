@@ -1,9 +1,7 @@
 # SonosPhone
 Hacked an old phone to control Sonos system with Alexa and keypad.
 
-<img src="IMG_0853.jpeg" width="200"/>
-<img src="IMG_0852.jpeg" width="200"/>
-<img src="IMG_0849.jpeg" width="200"/>
+<img src="IMG_0853.jpeg" width="200"/><img src="IMG_0852.jpeg" width="200"/><img src="IMG_0849.jpeg" width="200"/>
 
 I've had an antique-looking phone for a while, it looks like an old rotary phone, but it has a touch-tone dial pad. Since I haven't had a standard (POTS) line for some time, I thought I'd turn it into a project.
 
