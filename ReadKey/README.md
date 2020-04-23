@@ -4,6 +4,8 @@ This code runs as a service to read keypresses from the Sonos Phone project. It 
 
 The gist of this is simple, run an infinite loop to collect keypresses and run commands based on the key pressed. The commands, in this case, all talk to the [node-sonos-http-api](https://github.com/jishi/node-sonos-http-api), also running as a service on the same device. 
 
+The Sonos room is hard-coded in this file. I only wanted Sonos Phone to control one room. It's certainly possible to modify this code to have a key sequence to cycle through (or choose directly) the rooms on your Sonos system.
+
 Commands are as follows:
 
 | Key sequence | Command |
