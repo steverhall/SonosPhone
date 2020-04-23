@@ -1,6 +1,8 @@
 # SonosPhone
 Hacked an old phone to control Sonos system with Alexa and keypad.
 
+![old phone](https://github.com/steverhall/SonosPhone/IMG_0853.jpeg)
+
 I've had an antique-looking phone for a while, it looks like an old rotary phone, but it has a touch-tone dial pad. Since I haven't had a standard (POTS) line for some time, I thought I'd turn it into a project.
 
 Step one was to gut the phone and put in a Raspberry Pi Zero, add a power source, wire it up so the handset's microphone and speaker work with the Pi, and make the phone hook trigger an event on the Pi so we know when someone has lifted or set down the receiver.
