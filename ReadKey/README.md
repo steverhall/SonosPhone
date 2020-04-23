@@ -19,7 +19,7 @@ Commands are as follows:
 
 After interpreting the keypress sequence, the node-sonos-http-api web service is called with the appropriate GET command. 
 
-Format: `http://localhost:5005/_SonosRoomName_/_Command_`
+Format: `http://localhost:5005/ _SonosRoomName_ / _Command_ `
 
 ## Examples: 
 
@@ -27,7 +27,7 @@ Format: `http://localhost:5005/_SonosRoomName_/_Command_`
 http://localhost:5005/Office/volume/-1
 http://localhost:5005/Office/next
 http://localhost:5005/Office/previous
-http://localhost:5005/Office/playlist/_playlistname_
-http://localhost:5005/Office/favorite/_favoritename_
+http://localhost:5005/Office/playlist/ _playlistname_
+http://localhost:5005/Office/favorite/ _favoritename_
 http://localhost:5005/Office/playpause
 ```
