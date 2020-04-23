@@ -2,6 +2,8 @@
 Hacked an old phone to control Sonos system with Alexa and keypad.
 
 <img src="IMG_0853.jpeg" width="200"/>
+<img src="IMG_0852.jpeg" width="200"/>
+<img src="IMG_0849.jpeg" width="200"/>
 
 I've had an antique-looking phone for a while, it looks like an old rotary phone, but it has a touch-tone dial pad. Since I haven't had a standard (POTS) line for some time, I thought I'd turn it into a project.
 
@@ -13,6 +15,8 @@ This worked out pretty well. Now anytime I wanted to play music I could lift up 
 
 ## The Phone
 The phone is a [Crossley CR55-BK](http://www.crosleyradio.com/telephones/product-details?productkey=CR55&model=CR55-BK). When taking it apart, the first thing you notice is that it is loaded with about 1.5 lbs of lead. This gives the phone a lot of heft and makes it feel like a classic, indestructible Bell telephone. I removed the lead from the phone body but kept it in the handset. I gutted everything else from the inside of the phone, including the ringer, and then cut out as many mounting pegs as I could. Removing the mouth and earpieces from the phone was troublesome. Lots of glue, but they did come off eventually. 
+
+<img src="IMG_0863.jpeg" width="200"/>
 
 ## Wiring the handset
 It was unlikely that the existing microphone and speaker would work (and they didn't), so I replaced them. I kept the wiring intact, but removed the microphone and speaker, soldering in an 8 ohm, 2W [speaker](https://www.amazon.com/gp/product/B0177ABRQ6/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) and added an [amplifier](https://www.amazon.com/gp/product/B00PY2YSI4/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) to the Pi.
