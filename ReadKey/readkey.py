@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import time
 import RPi.GPIO as GPIO
 import os
@@ -29,7 +30,7 @@ def getKeyPress(maxwait):
 	else:
 		timeout = maxwait
 		
-	kp = keypad(columnCount = 3)
+	kp = keypad(columnCount = 4)
 	digit = None
 	starttime = time.perf_counter()
 
@@ -45,6 +46,14 @@ def getKeyPress(maxwait):
 		digit = 12
 	if digit == '#':
 		digit = 11
+	if digit == 'A':
+		digit = 13
+	if digit == 'B':
+		digit = 14
+	if digit == 'C':
+		digit = 15
+	if digit == 'D':
+		digit = 16
 
 	playTouchTone(digit)
 	return digit
@@ -52,16 +61,17 @@ def getKeyPress(maxwait):
 
 def startup():
 	status = 0
-	while status != 200:
-		status = callSonosWS('clip/sample_clip.mp3')
+	#while status != 200:
+		#status = callSonosWS('clip/sample_clip.mp3')
 
+
+startup()
 
 while True:
 	if __name__ == '__main__':
 
-		startup()
-
 		digit = getKeyPress(0)
+		print('Received ' + str(digit))
 
 		#Do something with keypress
 		if digit == 0:
@@ -73,8 +83,12 @@ while True:
 			playlist = getKeyPress(2) #wait 2 seconds for second button press			
 			if playlist == -1:
 				playError()
-			elif playlist > 0 and playlist < 9:
-				callSonosWS('playlist/Playlist' + str(playlist))
+			elif playlist >= 0 and playlist <= 9:
+				callSonosWS('favorite/Fav9' + str(playlist))
+		elif digit == 14: #B - Up
+			callSonosWS('next')
+		elif digit == 16: #D - Down
+			callSonosWS('previous')
 		elif digit == 12: #Star
 			command = getKeyPress(2)
 			if command == 1: #Next track
@@ -84,9 +98,9 @@ while True:
 			elif command == 7: #Shuffle
 				callSonosWS('shuffle')
 			elif command == 12: #Star - Volume Up
-				callSonosWS('volume/+1')
+				callSonosWS('volume/+3')
 			elif command == 11: #Pound - Volume Down
-				callSonosWS('volume/-1')
+				callSonosWS('volume/-3')
 		else:
 			print('Digit not handled')		
 	
