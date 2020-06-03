@@ -31,22 +31,22 @@ So this gave me a cool, retro phone to control Sonos via Alexa. All of the Alexa
 
 # Phase Two - Pushbutton control
 
-I am by no means a hardware engineer. I can solder, but better know exactly what to solder or it'll be a complete mess. Figuring out how the keypad worked seemed like a daunting task. It has eight wires coming out of it. As it turns out, even though it is in a circular layout, the keypad works like many other keypads. The wires correspond to rows and columns. For any button press, two of the wires become "active". I brought out an ohmmeter and started testing. 8 wires, many combinations, but eventually found the pattern.
+I am by no means a hardware engineer, so circuit design takes a lot of web searches in the hope that I can find someone who has done something similar. Figuring out how the rotary-style keypad worked seemed like a daunting task as I hadn't come across any other keypad like it. It has eight wires coming out of it. As it turns out, even though it is in a circular layout, the keypad works like many other keypads. The wires correspond to rows and columns. For any button press, two of the wires become "active". I brought out an ohmmeter and started testing. 8 wires, many combinations, but eventually found the pattern.
 
-| Digit        | Color 1 (row)          | Color 2 (col)  |
-| ------------- |:-------------:|:-----:|
+| Digit | Color 1 (row) | Color 2 (col)  |
+| ----- |:-------------:|:--------------:|
 | 1 | yellow | gray  |
 | 2 | yellow | purple|
-| 3 | yellow | white|
-| 4 | orange | gray |
-| 5 | orange | purple |
+| 3 | yellow | white |
+| 4 | orange | gray  |
+| 5 | orange | purple|
 | 6 | orange | white |
-| 7 | red | gray |
-| 8 | red | purple |
-| 9 | red | white |
-| * | brown | gray |
-| 0 | brown | purple |
-| # | brown | white |
+| 7 | red    | gray  |
+| 8 | red    | purple|
+| 9 | red    | white |
+| * | brown  | gray  |
+| 0 | brown  | purple|
+| # | brown  | white |
 
 Next, I wired each of these to an open GPIO port on the Pi and wrote some Python code to listen for these key presses. I used a [keypad library](https://github.com/rainierez/MatrixKeypad_Python) as the guts and wrote my button UI to interpret the keypresses. 
 
@@ -68,4 +68,4 @@ When a command is received, we then need to tell Sonos what to do. For that I us
 
 # Phase Three
 
-Yes, there is a phase three. I have it working but don't have the phone mods completed yet. I'll just say this, it uses a camera, but the camera is inside the phone. I'm really excited about this upcoming feature.
+Yes, there is a phase three. I have it working but don't have the phone mods completed yet. I'll just say this, it uses a camera, but the camera and lens are completely inside the phone. I'm really excited about this upcoming feature.
