@@ -38,12 +38,18 @@ class tts():
 
 			audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.LINEAR16)
 		
-			response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
+			try:
+				response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
 	
-			# The response's audio_content is binary.
-			with open(hashfilename, 'wb') as out:
-					out.write(response.audio_content)
+				# The response's audio_content is binary.
+				with open(hashfilename, 'wb') as out:
+						out.write(response.audio_content)
+			except:
+				print('ERROR: unable to retrieve speech and write to file.')
 
 		# Play speech file
-		myCmd = 'aplay -q -Dhw ' + hashfilename
-		os.system(myCmd)
+		if os.path.exists(hashfilename):
+			myCmd = 'aplay -q -Dhw ' + hashfilename
+			os.system(myCmd)
+		else:
+			print('ERROR: cant play file ' + hashfilename)
