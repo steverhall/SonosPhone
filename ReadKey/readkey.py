@@ -19,6 +19,7 @@ favorites = list()
 GPIO.setwarnings(False)
 
 async def callSonosWS(session, command ):
+	print('Sending ' + command + ' to Sonos')
 	url = r'http://localhost:5005/' + sonosRoomName + '/' + command
 	async with session.get(url) as response:
 		print('callSonosWS status = {}'.format(response.status))
@@ -118,6 +119,7 @@ async def admin(session):
 
 		if cmdstring == '10#':
 			# RESET NETWORK
+			print('reset network')
 			retval = os.system("cp /opt/ReadKey/wpa_supplicant.conf /")
 			print(retval)
 			await tts.SpeakText('reset network complete. Returned ' + str(retval))
@@ -130,11 +132,13 @@ async def admin(session):
 
 		if cmdstring == '50#':
 			# TOGGLE AD-HOC/WIFI MODE
+			print ('toggle ad-hoc/wifi mode')
 			retval = os.system("/opt/Autohotspot/forcehotspot.sh")
 			await tts.SpeakText('toggled ad-hoc mode')
 
 		if cmdstring == '91#':
 			# REBOOT
+			print ('reboot')
 			await tts.SpeakText('rebooting')
 			retval = os.system("/sbin/reboot")
 

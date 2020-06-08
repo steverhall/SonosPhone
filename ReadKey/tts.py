@@ -21,7 +21,7 @@ class tts():
 
 		# Create hash for this text and see if we have it cached already
 		h = hashlib.md5()
-		h.update(texttospeak)
+		h.update(texttospeak.encode('utf-8'))
 		hashfilename = 'cache/' + h.hexdigest() + '.wav'
 		
 		if os.path.exists(hashfilename):
