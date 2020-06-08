@@ -37,13 +37,23 @@ def playSound(wavfile):
 
 async def getPlaylists(session):
 	url = r'http://localhost:5005/playlists'
-	async with session.get(url) as response:
-		return await response.read()
+	try:
+		async with session.get(url) as response:
+			return await response.read()
+	except:
+		print('ERROR: Could not retrieve playlists')
+		tts.SpeakText('Could not retrieve playlists')
+
 
 async def getFavorites(session):
 	url = r'http://localhost:5005/favorites'
-	async with session.get(url) as response:
-		return await response.read()
+	try:
+		async with session.get(url) as response:
+			return await response.read()
+	except:
+		print('ERROR: Could not retrieve favorites')
+		tts.SpeakText('Could not retrieve favorites')
+
 
 def getKeyPress(maxwait):
 	#Set timeout for how long we wait for button press
