@@ -87,7 +87,7 @@ async def playPreset(session, playlist):
 			print(playlists[x])
 			if (playlists[x].find('[' + playlist + ']')) >= 0:
 				print('playing playlist: ' + playlists[x])
-				await asyncio.gather(callSonosWS(session, 'favorite/' + playlists[x]), tts.SpeakText(re.sub('\[.*?\]', '', playlists[x])))
+				await asyncio.gather(callSonosWS(session, 'playlist/' + playlists[x]), tts.SpeakText(re.sub('\[.*?\]', '', playlists[x])))
 				break
 
 async def admin(session):
