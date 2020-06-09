@@ -69,7 +69,7 @@ def getKeyPress(maxwait):
 
 	while digit == None and time.perf_counter() - starttime <= timeout:
 		digit = kp.getKey()
-
+		time.sleep(0.02)
 
 	if time.perf_counter() - starttime > timeout:
 		#we timed out
