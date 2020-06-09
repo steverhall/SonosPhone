@@ -177,7 +177,7 @@ async def main():
 
 	async with aiohttp.ClientSession(headers = {"Connection": "close"}) as session:
 		await startup(session)
-		await callsonosWS(session, 'clip/SonosPhone.mp3')
+		await callSonosWS(session, 'clip/SonosPhone.mp3')
 		print('finished startup')
 
 		while True:
