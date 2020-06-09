@@ -170,13 +170,14 @@ async def startup(session):
 	print('readkey starting')
 	await loadPlaylists(session)
 	print('loaded playlists')
-	playSound('SonosPhone.wav')
+	#playSound('SonosPhone.wav')
 	
 	
 async def main():
 
 	async with aiohttp.ClientSession(headers = {"Connection": "close"}) as session:
 		await startup(session)
+		await callsonosWS(session, 'clip/SonosPhone.mp3'
 		print('finished startup')
 
 		while True:
