@@ -12,7 +12,6 @@ from keypad import keypad
 from google.cloud import texttospeech
 from tts import tts
 
-sonosRoomName = "Office"
 playlists = list()
 favorites = list()
 
@@ -166,8 +165,18 @@ def signal_handler(signal, frame):
 	#loop.stop()
 	sys.exit(0)
 
+def getRoom():
+    global sonosRoomName
+    try:
+        with open("/home/pi/room.txt", "r") as file:
+            sonosRoomName = file.read().strip()
+    except:
+        print("Unable to read /home/pi/room.txt")
+        sys.exit()
+
 async def startup(session):
 	print('readkey starting')
+	getRoom()
 	await loadPlaylists(session)
 	print('loaded playlists')
 	#playSound('SonosPhone.wav')
