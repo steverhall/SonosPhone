@@ -52,9 +52,7 @@ Next, I wired each of these to an open GPIO port on the Pi and wrote some Python
 
 # Commands
 
-I wanted the UI to be simple, so buttons 1-8 correspond to Sonos favorites. I just create a Favorite in Sonos and name it Fav1, Fav2, ..., Fav8. This way, you can change the associated music very easily. No coding or configuration file to edit. Just edit the Favorite in the Sonos app itself. Favorites can be anything, a song, an album, a playlist, or even a link to a radio station in one of the Sonos services.
-
-The key-combo 9 + [1-8] corresponds to Sonos Playlists. Again, these use a naming convention of Playlist1, Playlist2, ..., Playlist8. So that gives me 16 presets that are very easy to access. 
+I wanted the UI to be simple, so numbers 1-99 correspond to Sonos favorites and playlists. By editing each favorite/playlist name to have the pattern [XX] in their title, these can be referenced through the phone. (Ex: "Jazz Standards [1]" is triggered by just pressing the "1" key. No coding or configuration file to edit. Just edit the Favorite in the Sonos app itself. Favorites can be anything, a song, an album, a playlist, or even a link to a radio station in one of the Sonos services.
 
 The other key commands I have wired up, including '**' for volume up, '*#' for volume down, and '*7' for shuffle.
 
