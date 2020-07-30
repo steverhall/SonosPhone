@@ -2,24 +2,24 @@ experts:
 - handle: 'patniko'
   email: 'patrick.nikoletich@microsoft.com'
   timeZone: 'America/Los_Angeles'
-  startTime: 8:00
-  endTime: 18:00
+  startTime: '8:00'
+  endTime: '18:00'
   excludeWeekends: true
   rate: 50.00
   openToDonate: true
 - handle: 'robdavisMS'
   email: 'rob.davis@microsoft.com'
   timeZone: 'America/Toronto'
-  startTime: 9:00
-  endTime: 17:00
+  startTime: '9:00'
+  endTime: '17:00'
   excludeWeekends: false
   rate: 30.00
   openToDonate: true
 - handle: 'steverhall'
   email: 'sthall@microsoft.com'
   timeZone: 'America/New_York'
-  startTime: 9:00
-  endTime: 17:00
+  startTime: '9:00'
+  endTime: '17:00'
   excludeWeekends: true
   rate: 30.00
   openToDonate: false
