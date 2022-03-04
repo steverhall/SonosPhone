@@ -1,0 +1,9 @@
+experts:
+- handle: 'patniko'
+  email: ''
+  timeZone: 'America/Los_Angeles'
+  startTime: '8:00'
+  endTime: '18:00'
+  excludeWeekends: true
+  rate: 50.00
+  openToDonate: true
