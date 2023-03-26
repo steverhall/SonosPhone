@@ -10,8 +10,8 @@ Commands are as follows:
 
 | Key sequence | Command |
 | ------------ | ------- |
-|1-8|	Call Sonos Favorites (Fav1, Fav2, Fav3…) |
-|9 + [1-8]|	Calls Sonos Playlist (Playlist1, Playlist2, Playlist3…) |
+|[1-8][0-9]|	Play Sonos Playlist or Station. The number corresponds to the required string in the playlist (ex: My Music [35] = 35 |
+|9 + [1-9][0-9][0-9]|	Plays SiriusXM station ###
 |0|	Toggles play/pause| 
 |*1|	Next        |
 |*2|	Previous    |
@@ -33,3 +33,10 @@ http://localhost:5005/Office/playlist/*playlistname*
 http://localhost:5005/Office/favorite/*favoritename*
 http://localhost:5005/Office/playpause
 ```
+
+## Configuration
+
+Downloaded TTS files will be placed in /var/www/html/audio/ so they can be served by web browser running on device and accessible to Sonos.
+
+Key for Azure TTS services is stored in /etc/ReadKey/ReadKey.env and loaded through the EnvironmentFile command in ReadKey.service
+

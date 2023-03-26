@@ -1,240 +1,241 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 import time
-import re
+#import re
 import signal
 import sys
 import RPi.GPIO as GPIO
 import os
 import json
 import asyncio
-import aiohttp
+#import urllib.parse
+#import logging
 from keypad import keypad
-from google.cloud import texttospeech
 from tts import tts
+import soco
 
-playlists = list()
+sonosRoomName = "Kitchen"
 favorites = list()
+device = soco.discovery.by_name(sonosRoomName)
+devices = {dev.player_name: dev for dev in soco.discover()}
+print(devices)
 
 GPIO.setwarnings(False)
 
-async def callSonosWS(session, command ):
-	print('Sending ' + command + ' to Sonos')
-	url = r'http://localhost:5005/' + sonosRoomName + '/' + command
-	async with session.get(url) as response:
-		print('callSonosWS status = {}'.format(response.status))
-		return response.status
-
 def playTouchTone(digit):
-	playSound(str(digit) + '.wav')
-	#myCmd = 'aplay -q -Dhw' + os.path.dirname(os.path.realpath(__file__)) + '/sounds/' + str(digit) + '.wav'
+    playSound(str(digit) + '.wav')
 
 def playError():
-	playSound('error.wav')
+    playSound('error.wav')
 
 def playSound(wavfile):
-	myCmd = 'aplay -q -Dhw sounds/' + wavfile
-	os.system(myCmd)
+    print('playSound disabled')
 
-async def getPlaylists(session):
-	url = r'http://localhost:5005/playlists'
-	try:
-		async with session.get(url) as response:
-			return await response.read()
-	except:
-		print('ERROR: Could not retrieve playlists')
-		tts.SpeakText('Could not retrieve playlists')
-
-
-async def getFavorites(session):
-	url = r'http://localhost:5005/favorites'
-	try:
-		async with session.get(url) as response:
-			return await response.read()
-	except:
-		print('ERROR: Could not retrieve favorites')
-		tts.SpeakText('Could not retrieve favorites')
+async def sayText(prompt):
+    #try:
+        url = await tts.SpeakText(prompt)
+        numInQueue = device.add_uri_to_queue(url)
+        device.play_from_queue(numInQueue - 1)
+        time.sleep(0.5)
+        print(device.get_current_transport_info()['current_transport_state']) 
+        while device.get_current_transport_info()['current_transport_state'] == 'PLAYING':
+            print('waiting for speech to finish')
+            time.sleep(1)
+        device.clear_queue()
+    #except:
+        #print('Unable to call TTS')
 
 
 def getKeyPress(maxwait):
-	#Set timeout for how long we wait for button press
-	if maxwait == 0:
-		timeout = 10000000  #about 110 days
-	else:
-		timeout = maxwait
-		
-	kp = keypad(columnCount = 4)
-	digit = None
-	starttime = time.perf_counter()
+    #Set timeout for how long we wait for button press
+    if maxwait == 0:
+        timeout = 10000000  #about 110 days
+    else:
+        timeout = maxwait
 
-	while digit == None and time.perf_counter() - starttime <= timeout:
-		digit = kp.getKey()
-		time.sleep(0.02)
+    kp = keypad(columnCount = 4)
+    digit = None
+    starttime = time.perf_counter()
 
-	if time.perf_counter() - starttime > timeout:
-		#we timed out
-		return -1
-	digit = '0123456789X#*ABCD'.find(str(digit))
+    while digit == None and time.perf_counter() - starttime <= timeout:
+        digit = kp.getKey()
+        time.sleep(0.02)
 
-	playTouchTone(digit)
-	return digit
+    if time.perf_counter() - starttime > timeout:
+        #we timed out
+        return -1
+    digit = '0123456789X#*ABCD'.find(str(digit))
+
+    time.sleep(0.2)
+    return digit
 
 def convertDigitToString(digit):
-	if digit < 0 or digit > 16:
-		raise Exception('digit {} is out of range'.format(digit))
-	return '0123456789X#*ABCD'[digit]
+    if digit < 0 or digit > 16:
+        raise Exception('digit {} is out of range'.format(digit))
+    return '0123456789X#*ABCD'[digit]
 
-async def playPreset(session, playlist):
-	print('Playing playlist: ' + playlist)
-	if len(favorites) > 0:
-		for x in range (0, len(favorites)):
-			if (favorites[x].find('[' + playlist + ']')) >= 0:
-				print('playing favorite: ' + favorites[x])
-				await asyncio.gather(callSonosWS(session, 'favorite/' + favorites[x]), tts.SpeakText(re.sub('\[.*?\]', '', favorites[x])))
-				return
+async def playFavorite(preset):
+    print('playFavorite(): ' + preset)
+    for f in favorites:
+        presetSearch = '[' + preset + ']'
+        if presetSearch in f.title:
+            try:
+                print('playing preset: ' + f.title)
+                device.stop()
+                await sayText(f.title.split('[')[0])
+                device.clear_queue()
+                device.add_to_queue(f.reference)
+                device.play()
+                break;
+            except:
+                print('Error playing preset:')
+                print(f['title'])
+                print(f['uri'])
+                print(f['meta'])
 
-	if len(playlists) > 0:
-		for x in range (0, len(playlists)):
-			print(playlists[x])
-			if (playlists[x].find('[' + playlist + ']')) >= 0:
-				print('playing playlist: ' + playlists[x])
-				await asyncio.gather(callSonosWS(session, 'playlist/' + playlists[x]), tts.SpeakText(re.sub('\[.*?\]', '', playlists[x])))
-				break
+async def playSiriusXM(playlist):
+    print('playing SiriusXM ' + playlist)
+    return
 
-async def admin(session):
-	cmdstring = ''
-	print('admin mode')
-	await tts.SpeakText('admin mode. pres pound for help or nine nine pound to exit.')
+async def admin():
+    cmdstring = ''
+    print('admin mode')
+    device.stop()
+    await sayText('admin mode. press pound for help or nine nine pound to exit.')
 
-	while cmdstring != '99#':
-		cmdstring = ''
+    while cmdstring != '99#':
+        cmdstring = ''
 
-		while '#' not in cmdstring:
-			digit = getKeyPress(2)
-			print(digit)
-			if digit >= 0:
-				charDigit = convertDigitToString(digit)
-				cmdstring += charDigit
-				print(cmdstring)
+        while '#' not in cmdstring:
+            digit = getKeyPress(2)
+            print(digit)
+            if digit >= 0:
+                charDigit = convertDigitToString(digit)
+                cmdstring += charDigit
+                print(cmdstring)
 
-		if cmdstring == '10#':
-			# RESET NETWORK
-			print('reset network')
-			retval = os.system("cp /opt/ReadKey/wpa_supplicant.conf /")
-			print(retval)
-			await tts.SpeakText('reset network complete. Returned ' + str(retval))
+            if cmdstring == '10#':
+                # RESET NETWORK
+                print('reset network')
+                retval = os.system("cp /opt/ReadKey/wpa_supplicant.conf /")
+                print(retval)
+                await sayText('reset network complete. Returned ' + str(retval))
 
-		if cmdstring == '40#':
-			# REFRESH PLAYLISTS
-			await loadPlaylists(session)
-			await tts.SpeakText('refreshed playlists')
-			print('loaded playlists')
+            if cmdstring == '40#':
+                # REFRESH PLAYLISTS
+                await loadFavorites()
+                await sayText('refreshed favorites')
 
-		if cmdstring == '50#':
-			# TOGGLE AD-HOC/WIFI MODE
-			print ('toggle ad-hoc/wifi mode')
-			retval = os.system("/opt/Autohotspot/forcehotspot.sh")
-			await tts.SpeakText('toggled ad-hoc mode')
+            if cmdstring == '50#':
+                # TOGGLE AD-HOC/WIFI MODE
+                print ('toggle ad-hoc/wifi mode')
+                retval = os.system("/opt/Autohotspot/forcehotspot.sh")
+                await sayText('toggled ad-hoc mode')
 
-		if cmdstring == '91#':
-			# REBOOT
-			print ('reboot')
-			await tts.SpeakText('rebooting')
-			retval = os.system("/sbin/reboot")
+            if cmdstring == '91#':
+                # REBOOT
+                print ('reboot')
+                await sayText('rebooting')
+                retval = os.system("/sbin/reboot")
 
-		if cmdstring == '#':
-			await tts.SpeakText('Commands. To refresh playlists, four zero. Toggle ad-hoc mode, five zero. Reboot, nine one. Exit, nine nine. End each command with pound.')
+            if cmdstring == '#':
+                await sayText('Commands. Refresh playlists, four zero. Toggle ad-hoc mode, five zero. Reboot, nine one. Exit, nine nine. End each command with pound.')
 
-	await tts.SpeakText('exiting admin mode')
+    await sayText('exiting admin mode')
 
 
-async def loadPlaylists(session):
-	global playlists
-	global favorites
+async def loadFavorites():
+    global favorites
+    favorites = device.music_library.get_sonos_favorites()
+    for f in favorites:
+            print(f.title)
 
-	results = await getPlaylists(session)
-	playlists = json.loads(results.decode('utf-8'))
-	print(playlists)
+async def playPause():
+    currentState = device.get_current_transport_info()['current_transport_state']
+    if currentState == 'PLAYING':
+        device.pause()
+    else:
+        device.play()
 
-	results = await getFavorites(session)
-	favorites = json.loads(results.decode('utf-8'))
-	print(favorites)
+async def next():
+    try:
+        device.next()
+    except:
+        print('unable to advanced to next song')
 
+async def previous():
+    try:
+        device.previous()
+    except:
+        print('unable to move to previous song')
 
 def signal_handler(signal, frame):
-	print('readkey exited through signal_handler')
-	#loop.stop()
-	sys.exit(0)
+    print('readkey exited through signal_handler')
+    sys.exit(0)
 
-def getRoom():
-    global sonosRoomName
-    try:
-        with open("/home/pi/room.txt", "r") as file:
-            sonosRoomName = file.read().strip()
-    except:
-        print("Unable to read /home/pi/room.txt")
-        sys.exit()
+async def startup():
+    print('readkey starting')
+    await loadFavorites()
 
-async def startup(session):
-	print('readkey starting')
-	getRoom()
-	await loadPlaylists(session)
-	print('loaded playlists')
-	#playSound('SonosPhone.wav')
-	
-	
+
+async def JoinSpeakers():
+    devices['FamilyRoom'].join(devices['Kitchen'])
+    devices['Emma'].join(devices['Kitchen'])
+
 async def main():
 
-	async with aiohttp.ClientSession(headers = {"Connection": "close"}) as session:
-		await startup(session)
-		await callSonosWS(session, 'clip/SonosPhone.mp3')
-		print('finished startup')
+    await startup()
+    while True:
+        digit = getKeyPress(0)
+        print('Received ' + str(digit))
 
-		while True:
-			digit = getKeyPress(0)
-			print('Received ' + str(digit))
-	
-			#Do something with keypress
-			if digit == 0:
-				#Toggle pause/play
-					await callSonosWS(session, 'playpause' )
+        #Do something with keypress
+        if digit == 0:
+            #Toggle pause/play
+            await playPause()
 
-			elif digit > 0 and digit <= 9:
-				playlist = getKeyPress(2) #wait 2 seconds for second button press			
-				if playlist == -1: #single button-press
-					await playPreset(session, str(digit))
-				elif playlist >= 0 and playlist <= 9: #second button-press
-					await playPreset(session, str(digit) + str(playlist))
-				
+        elif digit > 0 and digit <= 8:
+            fav = getKeyPress(2) #wait 2 seconds for second button press
+            if fav == -1: #single button-press
+                await playFavorite(str(digit))
+            elif fav >= 0 and fav <= 9: #second button-press
+                await playFavorite(str(digit) + str(fav))
+            elif digit == 9: #SiriusXM Channel
+                siriusXM = ""
+                channel = getKeyPress(2)
+                if channel >= 0:
+                    siriusXM = siriusXM + str(channel)
+                    channel = getKeyPress(2)
+                    if channel >= 0:
+                        siriusXM = siriusXM + str(channel)
+                        channel = getKeyPress(2)
+                        if channel >= 0:
+                            siriusXM = siriusXM + str(channel)
+                if siriusXM != "":
+                    await playSiriusXM(siriusXM)
 
-			elif digit == 14: #B - Up
-				await callSonosWS(session, 'next')
-			elif digit == 16: #D - Down
-				await callSonosWS(session, 'previous')
-			elif digit == 12: #Star
-				command = getKeyPress(2)
-				if command == 1: #Next track
-					playSound('NextTrack.wav')
-					await callSonosWS(session, 'next')
-				elif command == 2: #Prev track
-					playSound('PreviousTrack.wav')
-					await callSonosWS(session, 'previous')
-				elif command == 7: #Shuffle
-					await callSonosWS(session, 'shuffle')
-					await tts.SpeakText('shuffling')
-				elif command == 9: #Admin
-					await admin(session)
-				elif command == 12: #Star - Volume Up
-					await callSonosWS(session, 'volume/+3')
-				elif command == 11: #Pound - Volume Down
-					await callSonosWS(session, 'volume/-3')
-			else:
-				print('Digit not handled')		
-	
-			time.sleep(0.3)
+        elif digit == 14: #B - Up
+            await next()
+        elif digit == 16: #D - Down
+            await previous()
+        elif digit == 12: #Star
+            command = getKeyPress(2)
+            if command == 7: #Shuffle
+                device.shuffle = True
+                device.play()
+            elif command == 1: #Join Downstairs
+                await JoinSpeakers()
+            elif command == 9: #Admin
+                await admin()
+            elif command == 12: #Star - Volume Up
+                device.volume += 3
+            elif command == 11: #Pound - Volume Down
+                device.volume -= 3
+            else:
+                print('Digit not handled')
+
+        time.sleep(0.3)
 
 
 if __name__ == '__main__':
-	signal.signal(signal.SIGINT, signal_handler)
-	asyncio.run(main())
-	#loop = asyncio.get_event_loop()
-	#loop.run_until_complete(main())
+    signal.signal(signal.SIGINT, signal_handler)
+    asyncio.run(main())
