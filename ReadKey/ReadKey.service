@@ -1,0 +1,15 @@
+[Unit]
+Description=ReadKey
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/python3.8 /opt/ReadKey/readkey.py --daemon
+Restart=always
+User=alexapi
+Group=alexapi
+Environment=PATH=/usr/bin:/usr/local/bin
+EnvironmentFile=/etc/ReadKey/ReadKey.env
+WorkingDirectory=/opt/ReadKey
+
+[Install]
+WantedBy=multi-user.target
