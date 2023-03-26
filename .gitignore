@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 vc
+cam.jpg
+currentalbum.txt
