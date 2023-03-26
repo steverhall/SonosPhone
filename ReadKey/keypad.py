@@ -19,7 +19,7 @@ class keypad():
         GPIO.setmode(GPIO.BCM) 
 
         # CONSTANTS 
-        if columnCount is 3:
+        if columnCount == 3:
             self.KEYPAD = [
                 [1,2,3],
                 [4,5,6],
@@ -30,7 +30,7 @@ class keypad():
             self.ROW         = [5,6,16,26]
             self.COLUMN      = [22,23,24]
         
-        elif columnCount is 4:
+        elif columnCount == 4:
             self.KEYPAD = [
                 [1,2,3,"A"],
                 [4,5,6,"B"],

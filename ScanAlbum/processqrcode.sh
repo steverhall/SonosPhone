@@ -23,7 +23,7 @@ then
 		aplay -q -Dhw /opt/ScanAlbum/ConfirmTone.wav
 
 		#copy camera image
-		cp $1 $qrcode.jpg
+		#cp $1 $qrcode.jpg
 	fi
 	echo "Already playing"
 else 

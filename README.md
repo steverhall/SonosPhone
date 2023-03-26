@@ -7,9 +7,7 @@ I've had an antique-looking phone for a while, it looks like an old rotary phone
 
 Step one was to gut the phone and put in a Raspberry Pi Zero, add a power source, wire it up so the handset's microphone and speaker work with the Pi, and make the phone hook trigger an event on the Pi so we know when someone has lifted or set down the receiver.
 
-I loaded the Pi with [AlexaPi](https://github.com/alexa-pi/AlexaPi) and made one feature change to the code. I didn't want to have the microphone always-on or use a "wake" word, so I modified AlexaPi to only listen when I take the phone off-hook. 
-
-This worked out pretty well. Now anytime I wanted to play music I could lift up the phone and say "play classical music in the kitchen". Alexa would do her magic and music would (usually) start playing. All of the other Alexa functions could be heard through the handset, so you could ask for the weather or a joke to play, and that would play through the handset speaker.
+I loaded the Pi with [AlexaPi](https://github.com/alexa-pi/AlexaPi) and made one feature change to the code. I didn't want to have the microphone always-on or use a "wake" word, so I modified AlexaPi to only listen when I take the phone off-hook. (Mar 2023 this has been removed)
 
 ## The Phone
 The phone is a [Crossley CR55-BK](http://www.crosleyradio.com/telephones/product-details?productkey=CR55&model=CR55-BK). When taking it apart, the first thing you notice is that it is loaded with about 1.5 lbs of lead. This gives the phone a lot of heft and makes it feel like a classic, indestructible Bell telephone. I removed the lead from the phone body but kept it in the handset. I gutted everything else from the inside of the phone, including the ringer, and then cut out as many mounting pegs as I could. Removing the mouth and earpieces from the phone was troublesome. Lots of glue, but they did come off eventually. 
@@ -22,12 +20,10 @@ It was unlikely that the existing microphone and speaker would work (and they di
 I had a difficult time finding a microphone that would work, so I tried an experiment with something really cheap in case it failed. I bought a super inexpensive USB [microphone](https://www.amazon.com/gp/product/B077ZBHPJG/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) and basically took the whole thing apart and used its internal components. The USB mic was dismantled to remove the mic and then soldered to the two leads that come from the phone to the USB component. This basically puts a long wire on the mic. The mic was then placed in the handset and soldered.
 
 ## Wiring the hook
-Internally, the phone hook is just a switch with two wires, so this was easy to wire to the Pi and use GPIO events to know if it was triggered or not. AlexaPi has code for a "push button" to trigger the service, so it was easy to hook into that. Now when the hook is lifted, it triggers listening mode so you can speak the command.
-
-
+Internally, the phone hook is just a switch with two wires, so this was easy to wire to the Pi and use GPIO events to know if it was triggered or not. 
 ## Phase One Complete!!
 
-So this gave me a cool, retro phone to control Sonos via Alexa. All of the Alexa Sonos commands work and it was often much more convenient than reaching for my phone and bringing up the Sonos app. But for several months of service, the dial-pad was just staring at me doing nothing. I had to change that.
+So this gave me a cool, retro phone to control Sonos. 
 
 # Phase Two - Pushbutton control
 
@@ -66,4 +62,4 @@ When a command is received, we then need to tell Sonos what to do. For that I us
 
 # Phase Three
 
-Yes, there is a phase three. I have it working but don't have the phone mods completed yet. I'll just say this, it uses a camera, but the camera and lens are completely inside the phone. I'm really excited about this upcoming feature.
+Installed a camera inside the phone case and cut a thin slot in the side of the phone. Small, credit-card sized albums are now inserted into the slot where they are read by the camera. Once the album is recognized, the phone will play the album or playlist.
