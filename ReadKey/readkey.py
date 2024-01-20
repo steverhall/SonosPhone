@@ -1,14 +1,11 @@
 #! /usr/bin/env python3
 import time
-#import re
 import signal
 import sys
 import RPi.GPIO as GPIO
 import os
 import json
 import asyncio
-#import urllib.parse
-#import logging
 from keypad import keypad
 from tts import tts
 import soco
@@ -16,8 +13,19 @@ import soco
 sonosRoomName = "Kitchen"
 favorites = list()
 device = soco.discovery.by_name(sonosRoomName)
-devices = {dev.player_name: dev for dev in soco.discover()}
-print(devices)
+while True:
+    devices = {dev.player_name: dev for dev in soco.discover()}
+    print(devices)
+    if sonosRoomName in devices:
+        favorites = device.music_library.get_sonos_favorites()
+        if len(favorites) > 0:
+            break
+        else:
+            print('Found room but failed looking up favorites')
+    else:
+        print('Cant find device' + sonosRoomName)
+    time.sleep(3)
+
 
 GPIO.setwarnings(False)
 
@@ -31,7 +39,7 @@ def playSound(wavfile):
     print('playSound disabled')
 
 async def sayText(prompt):
-    #try:
+    try:
         url = await tts.SpeakText(prompt)
         numInQueue = device.add_uri_to_queue(url)
         device.play_from_queue(numInQueue - 1)
@@ -41,8 +49,9 @@ async def sayText(prompt):
             print('waiting for speech to finish')
             time.sleep(1)
         device.clear_queue()
-    #except:
-        #print('Unable to call TTS')
+    except:
+        device.clear_queue()
+        print('Unable to call TTS')
 
 
 def getKeyPress(maxwait):
@@ -80,7 +89,10 @@ async def playFavorite(preset):
         if presetSearch in f.title:
             try:
                 print('playing preset: ' + f.title)
-                device.stop()
+                while device.get_current_transport_info()['current_transport_state'] == 'PLAYING':
+                    device.stop()
+                    print('waiting for playback to stop')
+                    time.sleep(0.5)
                 await sayText(f.title.split('[')[0])
                 device.clear_queue()
                 device.add_to_queue(f.reference)
@@ -88,9 +100,8 @@ async def playFavorite(preset):
                 break;
             except:
                 print('Error playing preset:')
-                print(f['title'])
-                print(f['uri'])
-                print(f['meta'])
+                print(f.title)
+                print(f.reference)
 
 async def playSiriusXM(playlist):
     print('playing SiriusXM ' + playlist)
@@ -239,3 +250,4 @@ async def main():
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
     asyncio.run(main())
+

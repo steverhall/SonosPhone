@@ -1,14 +1,13 @@
 [Unit]
-Description=ReadKey
+Description=AudioServer
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python /opt/ReadKey/readkey.py --daemon
+ExecStart=/usr/bin/python -m http.server --directory /var/www/html 80 
 Restart=always
 User=root
 Group=root
 Environment=PATH=/usr/bin:/usr/local/bin
-EnvironmentFile=/etc/ReadKey/ReadKey.env
 WorkingDirectory=/opt/ReadKey
 
 [Install]
