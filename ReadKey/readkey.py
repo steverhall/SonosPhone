@@ -1,10 +1,10 @@
 #! /usr/bin/env python3
 import time
+import os
 import signal
 import sys
 import RPi.GPIO as GPIO
 import os
-import json
 import asyncio
 from keypad import keypad
 from tts import tts
@@ -12,9 +12,24 @@ import soco
 
 sonosRoomName = "Kitchen"
 favorites = list()
+
 device = soco.discovery.by_name(sonosRoomName)
+if device is None:
+    print(f"Device {sonosRoomName} not found. Retrying...")
+    while True:
+        time.sleep(5)
+        device = soco.discovery.by_name(sonosRoomName)
+        if device is not None:
+            break
+
 while True:
-    devices = {dev.player_name: dev for dev in soco.discover()}
+    devices = soco.discover()
+    if devices is None:
+        print("Discovery failed. Retrying...")
+        time.sleep(5)
+        continue
+
+    devices = {dev.player_name: dev for dev in devices}
     print(devices)
     if sonosRoomName in devices:
         favorites = device.music_library.get_sonos_favorites()
@@ -23,7 +38,7 @@ while True:
         else:
             print('Found room but failed looking up favorites')
     else:
-        print('Cant find device' + sonosRoomName)
+        print('Cant find device ' + sonosRoomName)
     time.sleep(3)
 
 
@@ -113,6 +128,14 @@ async def admin():
     device.stop()
     await sayText('admin mode. press pound for help or nine nine pound to exit.')
 
+    command_actions = {
+        '10#': reset_network,
+        '40#': refresh_playlists,
+        '50#': toggle_adhoc_wifi,
+        '91#': reboot,
+        '#': show_help
+    }
+
     while cmdstring != '99#':
         cmdstring = ''
 
@@ -124,35 +147,37 @@ async def admin():
                 cmdstring += charDigit
                 print(cmdstring)
 
-            if cmdstring == '10#':
-                # RESET NETWORK
-                print('reset network')
-                retval = os.system("cp /opt/ReadKey/wpa_supplicant.conf /")
-                print(retval)
-                await sayText('reset network complete. Returned ' + str(retval))
-
-            if cmdstring == '40#':
-                # REFRESH PLAYLISTS
-                await loadFavorites()
-                await sayText('refreshed favorites')
-
-            if cmdstring == '50#':
-                # TOGGLE AD-HOC/WIFI MODE
-                print ('toggle ad-hoc/wifi mode')
-                retval = os.system("/opt/Autohotspot/forcehotspot.sh")
-                await sayText('toggled ad-hoc mode')
-
-            if cmdstring == '91#':
-                # REBOOT
-                print ('reboot')
-                await sayText('rebooting')
-                retval = os.system("/sbin/reboot")
-
-            if cmdstring == '#':
-                await sayText('Commands. Refresh playlists, four zero. Toggle ad-hoc mode, five zero. Reboot, nine one. Exit, nine nine. End each command with pound.')
+        action = command_actions.get(cmdstring)
+        if action:
+            await action()
+        else:
+            print('Invalid command')
+            await sayText('Invalid command')
 
     await sayText('exiting admin mode')
 
+async def reset_network():
+    print('reset network')
+    retval = os.system("cp /opt/ReadKey/wpa_supplicant.conf /")
+    print(retval)
+    await sayText('reset network complete. Returned ' + str(retval))
+
+async def refresh_playlists():
+    await loadFavorites()
+    await sayText('refreshed favorites')
+
+async def toggle_adhoc_wifi():
+    print('toggle ad-hoc/wifi mode')
+    retval = os.system("/opt/Autohotspot/forcehotspot.sh")
+    await sayText('toggled ad-hoc mode')
+
+async def reboot():
+    print('reboot')
+    await sayText('rebooting')
+    os.system("/sbin/reboot")
+
+async def show_help():
+    await sayText('Commands. Refresh playlists, four zero. Toggle ad-hoc mode, five zero. Reboot, nine one. Exit, nine nine. End each command with pound.')
 
 async def loadFavorites():
     global favorites
@@ -192,57 +217,81 @@ async def JoinSpeakers():
     devices['FamilyRoom'].join(devices['Kitchen'])
     devices['Emma'].join(devices['Kitchen'])
 
+async def shuffle_and_play():
+    device.shuffle = True
+    device.play()
+
+async def volume_up():
+    device.volume += 3
+
+async def volume_down():
+    device.volume -= 3
+
+async def handle_digit(digit):
+    digit_actions = {
+        0: playPause,  # 0 - Play/Pause
+        1: handle_favorites,
+        2: handle_favorites,
+        3: handle_favorites,
+        4: handle_favorites,
+        5: handle_favorites,
+        6: handle_favorites,
+        7: handle_favorites,
+        8: handle_favorites,
+        9: handle_siriusxm,
+        14: next,  # B - Up
+        16: previous,  # D - Down
+        12: handle_star  # Star
+    }
+
+    action = digit_actions.get(digit)
+    if action:
+        await action()
+    else:
+        print('Digit not handled')
+
+async def handle_favorites():
+    list = getKeyPress(2)
+    if list == -1:
+        await playFavorite(str(digit))
+    elif list >= 0 and list <= 9:
+        await playFavorite(str(digit) + str(list))
+
+async def handle_siriusxm():
+    siriusXM = ""
+    for _ in range(3):
+        channel = getKeyPress(2)
+        if channel >= 0:
+            siriusXM += str(channel)
+        else:
+            break
+    if siriusXM:
+        await playSiriusXM(siriusXM)
+
+async def handle_star():
+    command = getKeyPress(2)
+    command_actions = {
+        1: JoinSpeakers,
+        7: shuffle_and_play,
+        9: admin,
+        11: volume_down,
+        12: volume_up
+    }
+
+    action = command_actions.get(command)
+    if action:
+        await action()
+    else:
+        print('Command not handled')
+
+
 async def main():
 
     await startup()
     while True:
         digit = getKeyPress(0)
         print('Received ' + str(digit))
-
-        #Do something with keypress
-        if digit == 0:
-            #Toggle pause/play
-            await playPause()
-
-        elif digit > 0 and digit <= 8:
-            fav = getKeyPress(2) #wait 2 seconds for second button press
-            if fav == -1: #single button-press
-                await playFavorite(str(digit))
-            elif fav >= 0 and fav <= 9: #second button-press
-                await playFavorite(str(digit) + str(fav))
-            elif digit == 9: #SiriusXM Channel
-                siriusXM = ""
-                channel = getKeyPress(2)
-                if channel >= 0:
-                    siriusXM = siriusXM + str(channel)
-                    channel = getKeyPress(2)
-                    if channel >= 0:
-                        siriusXM = siriusXM + str(channel)
-                        channel = getKeyPress(2)
-                        if channel >= 0:
-                            siriusXM = siriusXM + str(channel)
-                if siriusXM != "":
-                    await playSiriusXM(siriusXM)
-
-        elif digit == 14: #B - Up
-            await next()
-        elif digit == 16: #D - Down
-            await previous()
-        elif digit == 12: #Star
-            command = getKeyPress(2)
-            if command == 7: #Shuffle
-                device.shuffle = True
-                device.play()
-            elif command == 1: #Join Downstairs
-                await JoinSpeakers()
-            elif command == 9: #Admin
-                await admin()
-            elif command == 12: #Star - Volume Up
-                device.volume += 3
-            elif command == 11: #Pound - Volume Down
-                device.volume -= 3
-            else:
-                print('Digit not handled')
+        await handle_digit(digit)
 
         time.sleep(0.3)
 
