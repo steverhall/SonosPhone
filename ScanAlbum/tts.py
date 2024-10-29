@@ -1,6 +1,5 @@
 import os
 import http.client
-import asyncio
 import socket
 import hashlib
 
