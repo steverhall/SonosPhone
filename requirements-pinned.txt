@@ -1,0 +1,6 @@
+soco
+Pillow
+pyzbar
+aiohttp
+plexapi
+requests

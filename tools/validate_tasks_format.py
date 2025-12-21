@@ -13,6 +13,25 @@ def extract_task_lines(text: str) -> List[str]:
 def validate_file(path: Path) -> bool:
     text = path.read_text()
     lines = extract_task_lines(text)
+    # Detect unreplaced placeholder tokens anywhere in file
+    PLACEHOLDER_RE = re.compile(r"(\[[^\]]+\]|\{[^}]+\}|<[^>]+>)")
+    placeholder_issues = []
+    for idx, line in enumerate(text.splitlines(), start=1):
+        for m in PLACEHOLDER_RE.finditer(line):
+            token = m.group(0)
+            # allow expected checklist markers like [US1] and [P]
+            if token in ('[P]',) or re.match(r"\[US\d+\]", token):
+                continue
+            # allow the checklist marker at start of task lines (- [ ])
+            if token == '[ ]' and line.strip().startswith('- [ ]'):
+                continue
+            placeholder_issues.append((idx, token, line.strip()))
+    if placeholder_issues:
+        print('Found unreplaced placeholder tokens:')
+        for ln, tok, l in placeholder_issues:
+            print(f'  Line {ln}: {tok}  -- {l}')
+        # treat placeholders as validation failure
+        return False
     task_ids = []
     nums = []
     ok = True
