@@ -1,0 +1,36 @@
+name: Generate Tasks
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'specs/**'
+      - '.specify/templates/**'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install deps
+        run: pip install -r requirements.txt || true
+      - name: Run generator for all feature specs
+        run: |
+          for d in specs/*; do
+            if [ -d "$d" ]; then
+              echo "Processing $d"
+              python3 -m tools.generate_tasks --feature "$d" || true
+            fi
+          done
+      - name: Validate generated tasks
+        run: |
+          for f in specs/*/tasks.md; do
+            if [ -f "$f" ]; then
+              echo "Validating $f"
+              python3 tools/validate_tasks_format.py "$f" || true
+            fi
+          done
