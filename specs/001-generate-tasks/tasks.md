@@ -27,9 +27,15 @@ description: "Task list for feature: 001-generate-tasks"
 ## Foundational / Cross-Cutting
 
 - [ ] T104 [P] Add dependency pinning task: create `tools/export_pinned_requirements.py` or add step in generator to export pinned `requirements.txt` for Raspberry Pi (from `pyproject.toml` or lockfile). Acceptance: running the export creates `requirements-pinned.txt` in repo root. (path: tools/export_pinned_requirements.py)
-  - Verification: `python3 tools/export_pinned_requirements.py --output requirements-pinned.txt`
+  - Verification: Prefer Poetry export for pinned requirements:
+    - `poetry export -f requirements.txt --output requirements-pinned.txt --without-hashes --dev`
+    - Or: `python3 tools/export_pinned_requirements.py --output requirements-pinned.txt`
 
 - [ ] T105 [P] CI: Add `pip-audit` check to CI workflow for generated features and global deps. Acceptance: CI job runs `pip-audit` and fails on known vulnerabilities. (path: .github/workflows/pip-audit.yml)
+  - Verification: CI should validate `poetry.lock` then export pinned requirements and run `pip-audit`:
+    - `poetry lock --no-update`
+    - `poetry export -f requirements.txt --output /tmp/reqs.txt --without-hashes`
+    - `python -m pip_audit -r /tmp/reqs.txt --format=json --fail-on=high`
 
 ## Notes
 - The generator must strip or not emit the sample/template guidance blocks from the final `tasks.md`. Tasks must include precise file paths and acceptance criteria per the constitution. Tests are required for pure-Python logic as per constitution — mark tests as non-optional for functional pieces.

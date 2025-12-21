@@ -20,7 +20,7 @@ then
 		echo $qrcode > currentalbum.txt
 
 		#play confirmation tone
-		aplay -q -Dhw /opt/ScanAlbum/ConfirmTone.wav
+		aplay -q -Dhw /opt/services/ScanAlbum/ConfirmTone.wav
 
 		#copy camera image
 		#cp $1 $qrcode.jpg

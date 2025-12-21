@@ -1,7 +1,7 @@
 # Plan for 001-generate-tasks
 
 Tech stack: Python 3.9+, pytest, Poetry (pyproject.toml), minimal shell scripts.
-Project structure: sonosphone package, ReadKey/, ScanAlbum/, scripts/, tests/.
+Project structure: sonosphone package, services/ReadKey, services/ScanAlbum, scripts/, tests/.
 Libraries: soco, plexapi, Pillow, pyzbar, aiohttp, requests.
 Runtime targets: macOS, Linux, Raspberry Pi (with RPi.GPIO and PiCamera optional).
 

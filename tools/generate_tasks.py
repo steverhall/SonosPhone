@@ -27,7 +27,7 @@ def parse_spec(spec_path: Path):
 
 
 def build_story_section(stories, start_id=100):
-    out = '\n\n<!-- Generated story list -->\n'
+    out = '\n\n'
     for i, (priority, title) in enumerate(stories, start=1):
         task_id = start_id + i
         out += f"\n## [US{i}] P{priority} - {title}\n\n- [ ] T{task_id} [US{i}] Implement story: {title}\n"

@@ -25,9 +25,17 @@ def main():
     args = ap.parse_args()
 
     out = Path(args.output)
-    # Prefer pip-compile if available
+    # Prefer Poetry export if project uses Poetry
+    if Path('pyproject.toml').exists() and has_command('poetry'):
+        try:
+            subprocess.check_call(['poetry', 'export', '-f', 'requirements.txt', '--output', str(out), '--without-hashes', '--dev'])
+            print('Exported pinned requirements via poetry ->', out)
+            return 0
+        except subprocess.CalledProcessError:
+            print('poetry export failed; falling back', file=sys.stderr)
+
+    # Next prefer pip-compile if available
     if has_command('pip-compile'):
-        # try to compile requirements.txt into pinned file
         try:
             subprocess.check_call(['pip-compile', '--output-file', str(out), 'requirements.txt'])
             print('Wrote', out)
@@ -40,10 +48,10 @@ def main():
     if src.exists():
         shutil.copyfile(src, out)
         print('Copied', src, '→', out)
-        print('NOTE: This is an unpinned fallback. Install pip-tools and run pip-compile for pinned output.')
+        print('NOTE: This is an unpinned fallback. Install Poetry or pip-tools to produce pinned output.')
         return 0
 
-    print('No requirements.txt found and pip-compile not available. Cannot create pinned requirements.', file=sys.stderr)
+    print('No requirements.txt found and neither poetry nor pip-compile available. Cannot create pinned requirements.', file=sys.stderr)
     return 2
 
 

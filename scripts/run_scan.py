@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Start the ScanAlbum runner (calls ScanAlbum/scan.py)."""
-from ScanAlbum import scan
+"""Start the ScanAlbum runner (calls services/ScanAlbum/scan.py)."""
+from services.ScanAlbum import scan
 
 
 if __name__ == '__main__':

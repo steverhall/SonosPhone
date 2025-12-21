@@ -63,3 +63,7 @@ When a command is received, we then need to tell Sonos what to do. For that I us
 # Phase Three
 
 Installed a camera inside the phone case and cut a thin slot in the side of the phone. Small, credit-card sized albums are now inserted into the slot where they are read by the camera. Once the album is recognized, the phone will play the album or playlist.
+
+## Services Layout
+
+Device-specific runners now live under services/ReadKey and services/ScanAlbum. The systemd units in those folders expect the code at /opt/services/ReadKey and /opt/services/ScanAlbum, keeping the relocated runners aligned with the deployed services.

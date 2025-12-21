@@ -3,12 +3,12 @@ Description=ScanAlbum
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/python3.8 -u /opt/ScanAlbum/scan.py --daemon
+ExecStart=/usr/local/bin/python3.8 -u /opt/services/ScanAlbum/scan.py --daemon
 Restart=always
 User=root
 Group=root
 Environment=PATH=/bin:/usr/bin:/usr/local/bin:/home/pi/.local/bin
-WorkingDirectory=/opt/ScanAlbum
+WorkingDirectory=/opt/services/ScanAlbum
 
 [Install]
 WantedBy=multi-user.target
