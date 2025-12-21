@@ -1,0 +1,38 @@
+name: pip-audit
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install pip-audit
+        run: python -m pip install pip-audit
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements-pinned.txt || python -m pip install -r requirements.txt
+      - name: Run pip-audit
+        run: |
+          pip-audit --progress spinner || true
+      - name: Fail on vulnerabilities
+        run: |
+          pip-audit --format json > audit.json
+          python - <<'PY'
+import json,sys
+data=json.load(open('audit.json'))
+if data:
+    print('Vulnerabilities found:')
+    print(json.dumps(data, indent=2))
+    sys.exit(1)
+else:
+    print('No vulnerabilities')
+PY

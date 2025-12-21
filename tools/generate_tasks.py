@@ -58,13 +58,37 @@ def main():
     values = {
         'FEATURE NAME': feature_dir.name,
     }
-    tpl = load_template('tasks-template.md')
-    out = render_template(tpl, values)
+    # Produce a minimal, explicit header to avoid placeholder tokens left in templates
+    header_lines = [
+        '---',
+        f"description: \"Task list for feature: {values['FEATURE NAME']}\"",
+        '---',
+        '',
+        f"# Tasks: {values['FEATURE NAME']}",
+        '',
+        '**Input**: Design documents from /specs/' + values['FEATURE NAME'],
+        '**Prerequisites**: `plan.md`, `spec.md`',
+        '',
+        f"**Goal**: Generate a clean `tasks.md` derived from `spec.md` user stories for {values['FEATURE NAME']}.",
+        '',
+    ]
+    out = '\n'.join(header_lines) + '\n\n'
     out += build_story_section(stories)
 
     tokens = find_unreplaced_tokens(out)
-    if tokens:
-        print('Warning: unreplaced template tokens detected:', tokens)
+    # Exclude expected checklist/story markers from placeholder detection
+    filtered = []
+    for t in tokens:
+        if re.match(r'^\[US\d+\]$', t):
+            continue
+        if t in ('[P]', '[ ]'):
+            continue
+        if t in ('[ID]', '[Story]'):
+            continue
+        filtered.append(t)
+    if filtered:
+        print('Error: unreplaced template tokens detected:', filtered)
+        return 3
 
     target = feature_dir / 'tasks.md'
     if args.dry_run or args.open:
