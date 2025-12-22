@@ -587,34 +587,48 @@ def main():
     """Main entry point for the MCP server."""
     import sys
     import argparse
+    import os
+    
+    # Get log level from environment or default to INFO
+    log_level_name = os.environ.get('LOG_LEVEL', 'INFO').upper()
+    log_level = getattr(logging, log_level_name, logging.INFO)
     
     # Setup logging
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
+    
+    # Get defaults from environment variables (useful for systemd services)
+    default_transport = os.environ.get('MCP_TRANSPORT', 'stdio')
+    default_host = os.environ.get('MCP_HOST', '127.0.0.1')
+    default_port = int(os.environ.get('MCP_PORT', '8000'))
     
     # Parse arguments
     parser = argparse.ArgumentParser(description="Sonos MCP Server")
     parser.add_argument(
         "--transport",
         choices=["stdio", "http"],
-        default="stdio",
-        help="Transport mode (default: stdio)"
+        default=default_transport,
+        help=f"Transport mode (default: {default_transport}, can be set via MCP_TRANSPORT env var)"
     )
     parser.add_argument(
         "--host",
-        default="127.0.0.1",
-        help="Host to bind to for HTTP mode (default: 127.0.0.1)"
+        default=default_host,
+        help=f"Host to bind to for HTTP mode (default: {default_host}, can be set via MCP_HOST env var)"
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to listen on for HTTP mode (default: 8000)"
+        default=default_port,
+        help=f"Port to listen on for HTTP mode (default: {default_port}, can be set via MCP_PORT env var)"
     )
     
     args = parser.parse_args()
+    
+    LOG.info(f"Starting Sonos MCP Server with transport={args.transport}")
+    if args.transport == "http":
+        LOG.info(f"HTTP server will listen on {args.host}:{args.port}")
     
     # Create and run server (no default room needed)
     server = SonosMCPServer()

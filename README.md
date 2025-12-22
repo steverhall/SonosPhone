@@ -131,6 +131,24 @@ python scripts/run_mcp_server.py --transport stdio
 python scripts/run_mcp_server.py --transport http --host 127.0.0.1 --port 8000
 ```
 
+#### Running as a Linux Service (systemd)
+
+For production deployments or always-on operation, the MCP server can be run as a systemd service:
+
+```bash
+# See services/MCPServer/README.md for detailed installation instructions
+sudo systemctl start sonosphone-mcp.service
+sudo systemctl enable sonosphone-mcp.service  # Start on boot
+```
+
+The service runs in HTTP mode and includes:
+- Automatic restart on failure
+- Systemd journal logging
+- Security hardening (isolated tmp, protected system directories)
+- Configurable via environment file at `/etc/sonosphone/mcp_server.env`
+
+For complete setup instructions, see [services/MCPServer/README.md](services/MCPServer/README.md).
+
 ### Configuration Options
 
 - `--transport`: Transport mode - "stdio" or "http" (default: "stdio")
