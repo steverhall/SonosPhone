@@ -67,3 +67,153 @@ Installed a camera inside the phone case and cut a thin slot in the side of the 
 ## Services Layout
 
 Device-specific runners now live under services/ReadKey and services/ScanAlbum. The systemd units in those folders expect the code at /opt/services/ReadKey and /opt/services/ScanAlbum, keeping the relocated runners aligned with the deployed services.
+
+# Phase Four - MCP Server for LLM Control
+
+The SonosPhone now includes a Model Context Protocol (MCP) server that allows Large Language Models (LLMs) like Claude, ChatGPT, or other AI assistants to control your Sonos system through natural language.
+
+## What is MCP?
+
+The Model Context Protocol (MCP) is an open standard developed by Anthropic that allows AI applications to communicate with external systems in a standardized way. Think of it as a "USB-C for AI" - it provides a universal interface for LLMs to access and control various tools and services.
+
+## MCP Server Features
+
+The SonosPhone MCP server exposes the following tools to LLMs:
+
+### Room Management
+- **set_room**: Select which Sonos room/zone to control
+- **get_current_room**: Get information about the currently selected room
+- **list_available_rooms**: Discover all Sonos devices on the network
+
+### Playback Control
+- **play_favorite**: Play a Sonos favorite by name
+- **play_uri**: Play media from a URI (Spotify, radio streams, etc.)
+- **play**: Start or resume playback
+- **pause**: Pause playback
+- **stop**: Stop playback
+- **next_track**: Skip to the next track
+- **previous_track**: Go back to the previous track
+
+### Volume Control
+- **set_volume**: Set volume to a specific level (0-100)
+- **adjust_volume**: Increase or decrease volume by a relative amount
+- **toggle_mute**: Toggle mute on/off
+
+### Information
+- **list_favorites**: List all available Sonos favorites
+
+## Running the MCP Server
+
+### Prerequisites
+
+Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Or using Poetry:
+
+```bash
+poetry install
+```
+
+### Starting the Server
+
+#### Stdio Mode (for Claude Desktop and similar clients)
+
+```bash
+python scripts/run_mcp_server.py --room "Kitchen" --transport stdio
+```
+
+#### HTTP Mode (for web-based clients)
+
+```bash
+python scripts/run_mcp_server.py --room "Living Room" --transport http --host 127.0.0.1 --port 8000
+```
+
+### Configuration Options
+
+- `--room`: Default Sonos room to control (default: "Kitchen")
+- `--transport`: Transport mode - "stdio" or "http" (default: "stdio")
+- `--host`: Host to bind to for HTTP mode (default: "127.0.0.1")
+- `--port`: Port to listen on for HTTP mode (default: 8000)
+
+## Using with Claude Desktop
+
+To use the MCP server with Claude Desktop, add the following to your Claude Desktop configuration file:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "sonosphone": {
+      "command": "python",
+      "args": [
+        "/path/to/SonosPhone/scripts/run_mcp_server.py",
+        "--room", "Kitchen",
+        "--transport", "stdio"
+      ]
+    }
+  }
+}
+```
+
+After restarting Claude Desktop, you can ask Claude to control your Sonos:
+
+- "Set the room to Living Room"
+- "Play my Jazz Standards favorite"
+- "Increase the volume by 10"
+- "What's currently playing?"
+- "Skip to the next track"
+
+## Example Usage
+
+Once connected to an MCP client (like Claude), you can use natural language commands:
+
+```
+You: "Set the room to Kitchen and play my Morning Jazz playlist"
+Claude: [Uses set_room and play_favorite tools]
+        "I've set the room to Kitchen and started playing Morning Jazz."
+
+You: "Turn the volume up a bit"
+Claude: [Uses adjust_volume tool]
+        "I've increased the volume by 10."
+
+You: "What rooms are available?"
+Claude: [Uses list_available_rooms tool]
+        "I found these Sonos rooms: Kitchen, Living Room, Bedroom, Office"
+```
+
+## Security Considerations
+
+- The MCP server requires access to your local network to discover and control Sonos devices
+- In HTTP mode, the server binds to localhost by default for security
+- Consider firewall rules and network access when deploying in production
+- No authentication is currently implemented - ensure the server is only accessible to trusted clients
+
+## Troubleshooting
+
+### Sonos devices not found
+
+- Ensure your Sonos devices are on the same network as the machine running the MCP server
+- Check that UDP multicast is not blocked by your firewall
+- Try restarting the Sonos devices
+
+### MCP connection issues
+
+- Verify the correct path is configured in your MCP client
+- Check that Python and all dependencies are installed
+- Review the server logs for error messages
+
+## Development
+
+The MCP server implementation is in `sonosphone/mcp_server.py`. Tests are in `tests/test_mcp_server.py`.
+
+To run tests:
+
+```bash
+pytest tests/test_mcp_server.py -v
+```
