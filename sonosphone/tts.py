@@ -67,6 +67,6 @@ class TTS:
             else:
                 LOG.error('TTS non-200 response: %s', response.status)
                 return errorfilename
-        except Exception as e:
-            LOG.exception('Error calling TTS endpoint: %s', e)
+        except Exception:
+            LOG.exception('Error calling TTS endpoint')
             return errorfilename

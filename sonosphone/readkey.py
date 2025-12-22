@@ -26,8 +26,8 @@ class ReadKeyController:
                 LOG.info('Successfully discovered device: %s (IP: %s)', self.sonos_room, device.ip_address)
             self.device = device
             return device
-        except Exception as e:
-            LOG.error('Error during device discovery: %s', e, exc_info=True)
+        except Exception:
+            LOG.exception('Error during device discovery')
             return None
 
     def load_favorites(self):
@@ -39,8 +39,8 @@ class ReadKeyController:
             self.favorites = self.device.music_library.get_sonos_favorites()
             LOG.info('Loaded %d favorites', len(self.favorites))
             return self.favorites
-        except Exception as e:
-            LOG.error('Error loading favorites: %s', e, exc_info=True)
+        except Exception:
+            LOG.exception('Error loading favorites')
             return []
 
     async def say_text(self, prompt: str):
@@ -55,5 +55,5 @@ class ReadKeyController:
             LOG.debug('Added to queue at position %d', num_in_queue)
             self.device.play_from_queue(num_in_queue - 1)
             LOG.info('Playing text from queue')
-        except Exception as e:
-            LOG.error('Error speaking text: %s', e, exc_info=True)
+        except Exception:
+            LOG.exception('Error speaking text')
