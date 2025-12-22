@@ -12,6 +12,7 @@ Pillow = "^9.0"
 pyzbar = "^0.1"
 aiohttp = "^3.8"
 plexapi = "^4.0"
+mcp = "^1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"

@@ -4,3 +4,4 @@ pyzbar
 aiohttp
 plexapi
 requests
+mcp
