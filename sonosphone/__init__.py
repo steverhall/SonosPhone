@@ -6,4 +6,5 @@ __all__ = [
     "tts",
     "readkey",
     "scanalbum",
+    "mcp_server",
 ]

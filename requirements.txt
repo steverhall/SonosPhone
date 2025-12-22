@@ -1,6 +1,7 @@
 soco
-Pillow
+Pillow>=10.2.0
 pyzbar
-aiohttp
+aiohttp>=3.9.4
 plexapi
-requests
+requests>=2.20.0
+mcp>=1.23.0

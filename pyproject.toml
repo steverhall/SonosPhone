@@ -7,11 +7,12 @@ authors = ["Steve Hall <srhall@example.com>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 soco = "^0.23"
-requests = "^2.0"
-Pillow = "^9.0"
+requests = "^2.20"
+Pillow = "^10.2"
 pyzbar = "^0.1"
-aiohttp = "^3.8"
+aiohttp = "^3.9.4"
 plexapi = "^4.0"
+mcp = "^1.23"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
