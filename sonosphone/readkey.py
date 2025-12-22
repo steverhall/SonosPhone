@@ -17,7 +17,7 @@ class ReadKeyController:
         LOG.info('ReadKeyController initialized for room: %s', sonos_room)
 
     def discover_device(self, timeout: int = 30):
-        LOG.info('Discovering Sonos device: %s (timeout=%d seconds)', self.sonos_room, timeout)
+        LOG.info('Discovering Sonos device: %s', self.sonos_room)
         try:
             device = soco.discovery.by_name(self.sonos_room)
             if device is None:
