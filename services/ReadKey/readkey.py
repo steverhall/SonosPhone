@@ -80,5 +80,3 @@ if __name__ == '__main__':
         asyncio.run(run())
     except KeyboardInterrupt:
         LOG.info('Interrupted by user')
-
-    else:
