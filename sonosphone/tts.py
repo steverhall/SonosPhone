@@ -6,6 +6,8 @@ import hashlib
 import logging
 from typing import Optional
 
+LOG = logging.getLogger('sonosphone.tts')
+
 
 class TTS:
     @staticmethod
@@ -15,13 +17,15 @@ class TTS:
             s.connect(("8.8.8.8", 80))
             ip_address = s.getsockname()[0]
             s.close()
+            LOG.debug('Local IP address: %s', ip_address)
             return ip_address
-        except Exception:
-            logging.exception('Unable to get local IP; defaulting to 127.0.0.1')
+        except Exception as e:
+            LOG.exception('Unable to get local IP; defaulting to 127.0.0.1')
             return '127.0.0.1'
 
     @staticmethod
     def speak_text(texttospeak: str) -> str:
+        LOG.info('TTS request: "%s"', texttospeak)
         h = hashlib.md5()
         h.update(texttospeak.encode('utf-8'))
         ip = TTS.get_ip()
@@ -30,13 +34,13 @@ class TTS:
         hashurl = 'audio/' + h.hexdigest() + '.mp3'
 
         if os.path.exists(hashfilename):
-            logging.info('playing audio from cache: %s', hashfilename)
+            LOG.info('Playing audio from cache: %s', hashfilename)
             parts = hashfilename.split('/')
             return f"http://{ip}/{'/'.join(parts[-2:])}"
 
         key = os.environ.get('AZURE_SPEECH_KEY', '')
         if not key:
-            logging.warning('AZURE_SPEECH_KEY not set; returning error file URL')
+            LOG.warning('AZURE_SPEECH_KEY not set; returning error file URL')
             return errorfilename
 
         endpoint = "eastus.tts.speech.microsoft.com"
@@ -49,18 +53,20 @@ class TTS:
         }
         dataraw = f"<speak version='1.0' xml:lang='en-US'><voice xml:lang='en-US' xml:gender='Female' name='en-US-JennyNeural'>{texttospeak}</voice></speak>"
         try:
+            LOG.debug('Requesting TTS from Azure endpoint: %s%s', endpoint, path)
             conn = http.client.HTTPSConnection(endpoint, 443)
             conn.request("POST", path, dataraw, headers)
             response = conn.getresponse()
-            logging.info('TTS response: %s %s', response.status, response.reason)
+            LOG.info('TTS response: %s %s', response.status, response.reason)
             if response.status == 200:
                 os.makedirs(os.path.dirname(hashfilename), exist_ok=True)
                 with open(hashfilename, mode='wb') as localfile:
                     localfile.write(response.read())
+                LOG.info('Saved TTS audio to cache: %s', hashfilename)
                 return f"http://{ip}/{hashurl}"
             else:
-                logging.error('TTS non-200 response: %s', response.status)
+                LOG.error('TTS non-200 response: %s', response.status)
                 return errorfilename
-        except Exception:
-            logging.exception('Error calling TTS endpoint')
+        except Exception as e:
+            LOG.exception('Error calling TTS endpoint: %s', e)
             return errorfilename

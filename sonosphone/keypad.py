@@ -3,6 +3,8 @@ from typing import List, Any
 from . import hw
 import logging
 
+LOG = logging.getLogger('sonosphone.keypad')
+
 
 class Keypad:
     def __init__(self, column_count: int = 3):
@@ -18,13 +20,16 @@ class Keypad:
             self.ROW = [5, 6, 16, 26]
             self.COLUMN = [22, 23, 24, 25]
 
+        LOG.info('Initializing keypad with %d columns', column_count)
         try:
             self.GPIO.setmode(self.GPIO.BCM)
-        except Exception:
-            logging.debug('GPIO.setmode unavailable in shim')
+            LOG.debug('GPIO mode set to BCM')
+        except Exception as e:
+            LOG.debug('GPIO.setmode unavailable in shim: %s', e)
 
     def get_key(self) -> Any:
         # Implementation mirrors original but uses the hardware shim
+        LOG.debug('Scanning for key press')
         for j in range(len(self.COLUMN)):
             self.GPIO.setup(self.COLUMN[j], self.GPIO.OUT)
             self.GPIO.output(self.COLUMN[j], self.GPIO.LOW)
@@ -59,6 +64,7 @@ class Keypad:
             return None
 
         val = self.KEYPAD[row_val][col_val]
+        LOG.info('Key detected: %s (row=%d, col=%d)', val, row_val, col_val)
         self._exit()
         return val
 
@@ -70,8 +76,9 @@ class Keypad:
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     kp = Keypad()
     digit = None
     while digit is None:
         digit = kp.get_key()
-    print(digit)
+    LOG.info('Keypad test detected digit: %s', digit)

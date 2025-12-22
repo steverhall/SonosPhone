@@ -36,7 +36,6 @@ import logging
 from sonosphone.readkey import ReadKeyController
 from sonosphone.keypad import Keypad
 
-logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('ReadKeyRunner')
 
 
@@ -46,12 +45,14 @@ def signal_handler(signum, frame):
 
 
 async def run():
+    LOG.info('ReadKey service starting')
     controller = ReadKeyController(sonos_room='Kitchen')
     device = controller.discover_device()
     if not device:
         LOG.warning('No Sonos device found; continuing in degraded mode')
-
-    controller.load_favorites()
+    
+    favorites = controller.load_favorites()
+    LOG.info('Controller initialized with %d favorites', len(favorites))
 
     kp = Keypad(column_count=4)
 
@@ -67,11 +68,13 @@ async def run():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     signal.signal(signal.SIGINT, signal_handler)
+    LOG.info('ReadKey runner initialized')
     try:
         asyncio.run(run())
     except KeyboardInterrupt:
-        LOG.info('Interrupted')
+        LOG.info('Interrupted by user')
         timeout = 10000000  #about 110 days
 
     else:

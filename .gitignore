@@ -105,3 +105,9 @@ dist
 # TernJS port file
 .tern-port
 vc
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
