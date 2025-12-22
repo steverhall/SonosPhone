@@ -2,6 +2,9 @@ import os
 import http.client
 import socket
 import hashlib
+import logging
+
+LOG = logging.getLogger('services.ScanAlbum.tts')
 
 
 class tts():
@@ -26,9 +29,9 @@ class tts():
         hashurl = 'audio/' + h.hexdigest() + '.mp3'
 
         if os.path.exists(hashfilename):
-            print('playing audio from cache: ' + hashfilename)
+            LOG.info('Playing audio from cache: %s', hashfilename)
         else:
-            print('retrieving audio from Microsoft TTS: ' + hashfilename)
+            LOG.info('Retrieving audio from Microsoft TTS: %s', hashfilename)
 
             # Get speech from Microsoft TTS
             endpoint = "eastus.tts.speech.microsoft.com"
@@ -44,8 +47,7 @@ class tts():
             conn = http.client.HTTPSConnection(endpoint, 443)
             conn.request("POST", path, dataraw, headers)
             response = conn.getresponse()
-            print(f"response: {response.status}")
-            print(f"response: {response.reason}")
+            LOG.info('TTS response: %s %s', response.status, response.reason)
             if response.status == 200:
                 with open(hashfilename, mode='wb') as localfile:
                     localfile.write(response.read())
@@ -56,6 +58,5 @@ class tts():
         # Return url for the speech file we just saved
         audioLocation = "http://{}/{}".format(ip, hashurl)
 
-        print(audioLocation)
+        LOG.info('TTS audio location: %s', audioLocation)
         return audioLocation
-

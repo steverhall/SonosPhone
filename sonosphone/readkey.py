@@ -14,26 +14,46 @@ class ReadKeyController:
         self.sonos_room = sonos_room
         self.device = None
         self.favorites = []
+        LOG.info('ReadKeyController initialized for room: %s', sonos_room)
 
     def discover_device(self, timeout: int = 30):
         LOG.info('Discovering Sonos device: %s', self.sonos_room)
-        device = soco.discovery.by_name(self.sonos_room)
-        if device is None:
-            LOG.info('Device %s not found', self.sonos_room)
-        self.device = device
-        return device
+        try:
+            device = soco.discovery.by_name(self.sonos_room)
+            if device is None:
+                LOG.warning('Device %s not found', self.sonos_room)
+            else:
+                LOG.info('Successfully discovered device: %s (IP: %s)', self.sonos_room, device.ip_address)
+            self.device = device
+            return device
+        except Exception:
+            LOG.exception('Error during device discovery')
+            return None
 
     def load_favorites(self):
         if not self.device:
             LOG.warning('No device to load favorites from')
             return []
-        self.favorites = self.device.music_library.get_sonos_favorites()
-        return self.favorites
+        try:
+            LOG.info('Loading favorites from device')
+            self.favorites = self.device.music_library.get_sonos_favorites()
+            LOG.info('Loaded %d favorites', len(self.favorites))
+            return self.favorites
+        except Exception:
+            LOG.exception('Error loading favorites')
+            return []
 
     async def say_text(self, prompt: str):
-        url = TTS.speak_text(prompt)
-        if not url:
-            LOG.error('No URL from TTS')
-            return
-        num_in_queue = self.device.add_uri_to_queue(url)
-        self.device.play_from_queue(num_in_queue - 1)
+        LOG.info('Speaking text: "%s"', prompt)
+        try:
+            url = TTS.speak_text(prompt)
+            if not url:
+                LOG.error('No URL from TTS')
+                return
+            LOG.debug('TTS URL: %s', url)
+            num_in_queue = self.device.add_uri_to_queue(url)
+            LOG.debug('Added to queue at position %d', num_in_queue)
+            self.device.play_from_queue(num_in_queue - 1)
+            LOG.info('Playing text from queue')
+        except Exception:
+            LOG.exception('Error speaking text')
