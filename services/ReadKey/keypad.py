@@ -12,6 +12,9 @@
 # Brwn - Row 4 - 26
  
 import RPi.GPIO as GPIO
+import logging
+
+LOG = logging.getLogger('services.ReadKey.keypad')
  
 class keypad():
     def __init__(self, columnCount = 3):
@@ -103,6 +106,7 @@ class keypad():
                 GPIO.setup(self.COLUMN[j], GPIO.IN, pull_up_down=GPIO.PUD_UP)
          
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     # Initialize the keypad class
     kp = keypad()
      
@@ -112,4 +116,4 @@ if __name__ == '__main__':
         digit = kp.getKey()
      
     # Print the result
-    print(digit)
+    LOG.info('Keypad detected: %s', digit)

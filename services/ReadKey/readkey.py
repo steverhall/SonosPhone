@@ -9,13 +9,18 @@ import asyncio
 from keypad import keypad
 from tts import tts
 import soco
+import logging
+
+# Legacy code - this section appears to be old code that's been superseded by the wrapper below
+# Adding logging for completeness
+LOG_LEGACY = logging.getLogger('services.ReadKey.readkey.legacy')
 
 sonosRoomName = "Office"
 favorites = list()
 
 device = soco.discovery.by_name(sonosRoomName)
 if device is None:
-    print(f"Device {sonosRoomName} not found. Retrying...")
+    LOG_LEGACY.warning('Device %s not found. Retrying...', sonosRoomName)
     while True:
         time.sleep(5)
         device = soco.discovery.by_name(sonosRoomName)
