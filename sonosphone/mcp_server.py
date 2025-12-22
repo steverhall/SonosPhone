@@ -11,108 +11,84 @@ LOG = logging.getLogger('sonosphone.mcp_server')
 class SonosMCPServer:
     """MCP server exposing Sonos control tools for LLM integration."""
 
-    def __init__(self, name: str = "SonosPhone MCP Server", default_room: str = "Kitchen"):
+    def __init__(self, name: str = "SonosPhone MCP Server"):
         """Initialize the Sonos MCP server.
         
         Args:
             name: Name of the MCP server
-            default_room: Default Sonos room/zone to control
         """
-        self.default_room = default_room
-        self.current_room = default_room
-        self.device: Optional[soco.SoCo] = None
-        
         # Initialize FastMCP server
         self.mcp = FastMCP(
             name=name,
             instructions=(
                 "This server provides tools to control Sonos speakers. "
-                "You can set rooms, play music from various services, "
-                "control volume, and manage playback."
+                "Each tool accepts a 'room' parameter to specify which Sonos room to control. "
+                "You can play music from various services, control volume, and manage playback."
             )
         )
         
         # Register all tools
         self._register_tools()
 
+    def _get_device(self, room_name: str) -> Optional[soco.SoCo]:
+        """Helper method to get a Sonos device by room name.
+        
+        Args:
+            room_name: Name of the Sonos room
+            
+        Returns:
+            SoCo device instance or None if not found
+        """
+        try:
+            device = soco.discovery.by_name(room_name)
+            return device
+        except Exception as e:
+            LOG.error(f"Error discovering device '{room_name}': {e}")
+            return None
+
     def _register_tools(self):
         """Register all MCP tools."""
         
         @self.mcp.tool()
-        def set_room(room_name: str) -> Dict[str, Any]:
-            """Set the active Sonos room/zone to control.
+        def get_room_status(room: str) -> Dict[str, Any]:
+            """Get information about a specific Sonos room.
             
             Args:
-                room_name: Name of the Sonos room (e.g., "Kitchen", "Living Room")
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
-                Status information about the room selection
+                Information about the room and its current playback state
             """
             try:
-                LOG.info(f"Setting room to: {room_name}")
-                self.current_room = room_name
-                self.device = soco.discovery.by_name(room_name)
+                device = self._get_device(room)
                 
-                if self.device is None:
+                if device is None:
                     return {
                         "success": False,
-                        "error": f"Room '{room_name}' not found",
-                        "current_room": None
+                        "error": f"Room '{room}' not found",
+                        "room": room
                     }
+                
+                track_info = device.get_current_track_info()
+                transport_info = device.get_current_transport_info()
                 
                 return {
                     "success": True,
-                    "current_room": room_name,
-                    "player_name": self.device.player_name,
-                    "household_id": self.device.household_id
-                }
-            except Exception as e:
-                LOG.error(f"Error setting room: {e}")
-                return {
-                    "success": False,
-                    "error": str(e),
-                    "current_room": self.current_room
-                }
-
-        @self.mcp.tool()
-        def get_current_room() -> Dict[str, Any]:
-            """Get information about the currently selected room.
-            
-            Returns:
-                Information about the current room and its state
-            """
-            try:
-                if self.device is None:
-                    # Try to discover the current room
-                    self.device = soco.discovery.by_name(self.current_room)
-                
-                if self.device is None:
-                    return {
-                        "success": False,
-                        "error": "No device connected",
-                        "current_room": self.current_room
-                    }
-                
-                track_info = self.device.get_current_track_info()
-                transport_info = self.device.get_current_transport_info()
-                
-                return {
-                    "success": True,
-                    "current_room": self.current_room,
-                    "player_name": self.device.player_name,
+                    "room": room,
+                    "player_name": device.player_name,
                     "is_playing": transport_info.get('current_transport_state') == 'PLAYING',
-                    "volume": self.device.volume,
-                    "mute": self.device.mute,
+                    "volume": device.volume,
+                    "mute": device.mute,
                     "current_track": track_info.get('title', 'Nothing playing'),
                     "artist": track_info.get('artist', ''),
                     "album": track_info.get('album', '')
                 }
             except Exception as e:
-                LOG.error(f"Error getting current room info: {e}")
+                LOG.error(f"Error getting room status for '{room}': {e}")
                 return {
                     "success": False,
                     "error": str(e),
-                    "current_room": self.current_room
+                    "room": room
                 }
 
         @self.mcp.tool()
@@ -148,26 +124,27 @@ class SonosMCPServer:
                 }
 
         @self.mcp.tool()
-        def play_favorite(favorite_name: str) -> Dict[str, Any]:
-            """Play a Sonos favorite by name.
+        def play_favorite(room: str, favorite_name: str) -> Dict[str, Any]:
+            """Play a Sonos favorite by name in a specific room.
             
             Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
                 favorite_name: Name of the favorite to play
             
             Returns:
                 Status of the playback operation
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info(f"Playing favorite: {favorite_name}")
-                favorites = self.device.music_library.get_sonos_favorites()
+                LOG.info(f"Playing favorite '{favorite_name}' in room '{room}'")
+                favorites = device.music_library.get_sonos_favorites()
                 
                 # Find the favorite
                 target_favorite = None
@@ -181,31 +158,35 @@ class SonosMCPServer:
                     return {
                         "success": False,
                         "error": f"Favorite '{favorite_name}' not found",
-                        "available_favorites": available
+                        "available_favorites": available,
+                        "room": room
                     }
                 
                 # Clear queue and play
-                self.device.clear_queue()
-                self.device.add_to_queue(target_favorite)
-                self.device.play_from_queue(0)
+                device.clear_queue()
+                device.add_to_queue(target_favorite)
+                device.play_from_queue(0)
                 
                 return {
                     "success": True,
                     "message": f"Playing favorite: {target_favorite.title}",
-                    "favorite": target_favorite.title
+                    "favorite": target_favorite.title,
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error playing favorite: {e}")
+                LOG.error(f"Error playing favorite in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def play_uri(uri: str, title: Optional[str] = None) -> Dict[str, Any]:
-            """Play media from a URI.
+        def play_uri(room: str, uri: str, title: Optional[str] = None) -> Dict[str, Any]:
+            """Play media from a URI in a specific room.
             
             Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
                 uri: URI of the media to play (e.g., Spotify URI, radio stream URL)
                 title: Optional title for the media
             
@@ -213,329 +194,372 @@ class SonosMCPServer:
                 Status of the playback operation
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info(f"Playing URI: {uri}")
-                self.device.play_uri(uri, title=title or "")
+                LOG.info(f"Playing URI '{uri}' in room '{room}'")
+                device.play_uri(uri, title=title or "")
                 
                 return {
                     "success": True,
                     "message": f"Playing from URI",
                     "uri": uri,
-                    "title": title
+                    "title": title,
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error playing URI: {e}")
+                LOG.error(f"Error playing URI in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def set_volume(volume: int) -> Dict[str, Any]:
-            """Set the volume level.
+        def set_volume(room: str, volume: int) -> Dict[str, Any]:
+            """Set the volume level in a specific room.
             
             Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
                 volume: Volume level (0-100)
             
             Returns:
                 Status of the volume change
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
                 # Clamp volume to valid range
                 volume = max(0, min(100, volume))
                 
-                LOG.info(f"Setting volume to: {volume}")
-                self.device.volume = volume
+                LOG.info(f"Setting volume to {volume} in room '{room}'")
+                device.volume = volume
                 
                 return {
                     "success": True,
                     "volume": volume,
-                    "message": f"Volume set to {volume}"
+                    "message": f"Volume set to {volume}",
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error setting volume: {e}")
+                LOG.error(f"Error setting volume in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def adjust_volume(change: int) -> Dict[str, Any]:
-            """Adjust the volume by a relative amount.
+        def adjust_volume(room: str, change: int) -> Dict[str, Any]:
+            """Adjust the volume by a relative amount in a specific room.
             
             Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
                 change: Volume change amount (-100 to +100)
             
             Returns:
                 Status of the volume change
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info(f"Adjusting volume by: {change}")
-                current_volume = self.device.volume
+                LOG.info(f"Adjusting volume by {change} in room '{room}'")
+                current_volume = device.volume
                 new_volume = max(0, min(100, current_volume + change))
-                self.device.volume = new_volume
+                device.volume = new_volume
                 
                 return {
                     "success": True,
                     "previous_volume": current_volume,
                     "new_volume": new_volume,
                     "change": new_volume - current_volume,
-                    "message": f"Volume adjusted from {current_volume} to {new_volume}"
+                    "message": f"Volume adjusted from {current_volume} to {new_volume}",
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error adjusting volume: {e}")
+                LOG.error(f"Error adjusting volume in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def pause() -> Dict[str, Any]:
-            """Pause the current playback.
+        def pause(room: str) -> Dict[str, Any]:
+            """Pause the current playback in a specific room.
+            
+            Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
                 Status of the pause operation
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info("Pausing playback")
-                self.device.pause()
+                LOG.info(f"Pausing playback in room '{room}'")
+                device.pause()
                 
                 return {
                     "success": True,
-                    "message": "Playback paused"
+                    "message": "Playback paused",
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error pausing: {e}")
+                LOG.error(f"Error pausing in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def play() -> Dict[str, Any]:
-            """Resume or start playback.
+        def play(room: str) -> Dict[str, Any]:
+            """Resume or start playback in a specific room.
+            
+            Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
                 Status of the play operation
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info("Starting/resuming playback")
-                self.device.play()
+                LOG.info(f"Starting/resuming playback in room '{room}'")
+                device.play()
                 
                 return {
                     "success": True,
-                    "message": "Playback started/resumed"
+                    "message": "Playback started/resumed",
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error playing: {e}")
+                LOG.error(f"Error playing in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def stop() -> Dict[str, Any]:
-            """Stop the current playback.
+        def stop(room: str) -> Dict[str, Any]:
+            """Stop the current playback in a specific room.
+            
+            Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
                 Status of the stop operation
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info("Stopping playback")
-                self.device.stop()
+                LOG.info(f"Stopping playback in room '{room}'")
+                device.stop()
                 
                 return {
                     "success": True,
-                    "message": "Playback stopped"
+                    "message": "Playback stopped",
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error stopping: {e}")
+                LOG.error(f"Error stopping in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def next_track() -> Dict[str, Any]:
-            """Skip to the next track.
+        def next_track(room: str) -> Dict[str, Any]:
+            """Skip to the next track in a specific room.
+            
+            Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
                 Status of the skip operation
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info("Skipping to next track")
-                self.device.next()
+                LOG.info(f"Skipping to next track in room '{room}'")
+                device.next()
                 
                 # Get the new track info
-                track_info = self.device.get_current_track_info()
+                track_info = device.get_current_track_info()
                 
                 return {
                     "success": True,
                     "message": "Skipped to next track",
                     "current_track": track_info.get('title', ''),
-                    "artist": track_info.get('artist', '')
+                    "artist": track_info.get('artist', ''),
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error skipping to next track: {e}")
+                LOG.error(f"Error skipping to next track in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def previous_track() -> Dict[str, Any]:
-            """Go back to the previous track.
+        def previous_track(room: str) -> Dict[str, Any]:
+            """Go back to the previous track in a specific room.
+            
+            Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
                 Status of the operation
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info("Going to previous track")
-                self.device.previous()
+                LOG.info(f"Going to previous track in room '{room}'")
+                device.previous()
                 
                 # Get the new track info
-                track_info = self.device.get_current_track_info()
+                track_info = device.get_current_track_info()
                 
                 return {
                     "success": True,
                     "message": "Went to previous track",
                     "current_track": track_info.get('title', ''),
-                    "artist": track_info.get('artist', '')
+                    "artist": track_info.get('artist', ''),
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error going to previous track: {e}")
+                LOG.error(f"Error going to previous track in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def toggle_mute() -> Dict[str, Any]:
-            """Toggle mute on/off.
+        def toggle_mute(room: str) -> Dict[str, Any]:
+            """Toggle mute on/off in a specific room.
+            
+            Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
                 Status of the mute toggle
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                current_mute = self.device.mute
+                current_mute = device.mute
                 new_mute = not current_mute
                 
-                LOG.info(f"Toggling mute: {current_mute} -> {new_mute}")
-                self.device.mute = new_mute
+                LOG.info(f"Toggling mute in room '{room}': {current_mute} -> {new_mute}")
+                device.mute = new_mute
                 
                 return {
                     "success": True,
                     "mute": new_mute,
-                    "message": f"Mute {'on' if new_mute else 'off'}"
+                    "message": f"Mute {'on' if new_mute else 'off'}",
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error toggling mute: {e}")
+                LOG.error(f"Error toggling mute in '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
         @self.mcp.tool()
-        def list_favorites() -> Dict[str, Any]:
-            """List all available Sonos favorites.
+        def list_favorites(room: str) -> Dict[str, Any]:
+            """List all available Sonos favorites from a specific room.
+            
+            Args:
+                room: Name of the Sonos room (e.g., "Kitchen", "Living Room")
             
             Returns:
                 List of favorite names
             """
             try:
-                if self.device is None:
-                    self.device = soco.discovery.by_name(self.current_room)
-                    if self.device is None:
-                        return {
-                            "success": False,
-                            "error": f"Room '{self.current_room}' not found"
-                        }
+                device = self._get_device(room)
+                if device is None:
+                    return {
+                        "success": False,
+                        "error": f"Room '{room}' not found",
+                        "room": room
+                    }
                 
-                LOG.info("Listing favorites")
-                favorites = self.device.music_library.get_sonos_favorites()
+                LOG.info(f"Listing favorites from room '{room}'")
+                favorites = device.music_library.get_sonos_favorites()
                 favorite_list = [{"title": fav.title, "uri": fav.get_uri()} for fav in favorites]
                 
                 return {
                     "success": True,
                     "favorites": favorite_list,
-                    "count": len(favorite_list)
+                    "count": len(favorite_list),
+                    "room": room
                 }
             except Exception as e:
-                LOG.error(f"Error listing favorites: {e}")
+                LOG.error(f"Error listing favorites from '{room}': {e}")
                 return {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "room": room
                 }
 
     def run_stdio(self):
@@ -573,11 +597,6 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser(description="Sonos MCP Server")
     parser.add_argument(
-        "--room",
-        default="Kitchen",
-        help="Default Sonos room to control (default: Kitchen)"
-    )
-    parser.add_argument(
         "--transport",
         choices=["stdio", "http"],
         default="stdio",
@@ -597,8 +616,8 @@ def main():
     
     args = parser.parse_args()
     
-    # Create and run server
-    server = SonosMCPServer(default_room=args.room)
+    # Create and run server (no default room needed)
+    server = SonosMCPServer()
     
     if args.transport == "stdio":
         server.run_stdio()

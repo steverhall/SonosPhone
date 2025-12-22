@@ -25,45 +25,45 @@ def mock_device():
 
 def test_server_initialization():
     """Test that the server initializes correctly."""
-    with patch('sonosphone.mcp_server.soco.discovery.by_name'):
-        server = SonosMCPServer(default_room="Test Room")
-        assert server.default_room == "Test Room"
-        assert server.current_room == "Test Room"
-        assert server.mcp is not None
-        assert server.mcp.name == "SonosPhone MCP Server"
+    server = SonosMCPServer()
+    assert server.mcp is not None
+    assert server.mcp.name == "SonosPhone MCP Server"
 
 
 @pytest.mark.asyncio
 async def test_all_tools_registered():
     """Test that all expected tools are registered."""
-    with patch('sonosphone.mcp_server.soco.discovery.by_name'):
-        server = SonosMCPServer(default_room="Test Room")
-        
-        expected_tools = {
-            'set_room', 'get_current_room', 'list_available_rooms',
-            'play_favorite', 'play_uri', 'set_volume', 'adjust_volume',
-            'pause', 'play', 'stop', 'next_track', 'previous_track',
-            'toggle_mute', 'list_favorites'
-        }
-        
-        tools_list = await server.mcp.list_tools()
-        registered_tools = {tool.name for tool in tools_list}
-        
-        assert expected_tools == registered_tools
-
-
-def test_server_has_device_attribute():
-    """Test that the server has device attribute."""
-    with patch('sonosphone.mcp_server.soco.discovery.by_name'):
-        server = SonosMCPServer(default_room="Test Room")
-        assert hasattr(server, 'device')
-        assert hasattr(server, 'current_room')
-        assert hasattr(server, 'default_room')
+    server = SonosMCPServer()
+    
+    expected_tools = {
+        'get_room_status', 'list_available_rooms',
+        'play_favorite', 'play_uri', 'set_volume', 'adjust_volume',
+        'pause', 'play', 'stop', 'next_track', 'previous_track',
+        'toggle_mute', 'list_favorites'
+    }
+    
+    tools_list = await server.mcp.list_tools()
+    registered_tools = {tool.name for tool in tools_list}
+    
+    assert expected_tools == registered_tools
 
 
 def test_server_can_be_created_with_custom_name():
     """Test that the server can be created with a custom name."""
-    with patch('sonosphone.mcp_server.soco.discovery.by_name'):
-        server = SonosMCPServer(name="Custom MCP Server", default_room="Living Room")
-        assert server.mcp.name == "Custom MCP Server"
-        assert server.default_room == "Living Room"
+    server = SonosMCPServer(name="Custom MCP Server")
+    assert server.mcp.name == "Custom MCP Server"
+
+
+def test_get_device_helper():
+    """Test the _get_device helper method."""
+    with patch('sonosphone.mcp_server.soco.discovery.by_name') as mock_discovery:
+        mock_device = Mock()
+        mock_device.player_name = "Test Room"
+        mock_discovery.return_value = mock_device
+        
+        server = SonosMCPServer()
+        device = server._get_device("Test Room")
+        
+        assert device is not None
+        assert device.player_name == "Test Room"
+        mock_discovery.assert_called_once_with("Test Room")

@@ -78,29 +78,28 @@ The Model Context Protocol (MCP) is an open standard developed by Anthropic that
 
 ## MCP Server Features
 
-The SonosPhone MCP server exposes the following tools to LLMs:
+The SonosPhone MCP server exposes the following tools to LLMs. **All tools accept a `room` parameter** to specify which Sonos room to control, making the server stateless and allowing control of multiple rooms without switching context.
 
 ### Room Management
-- **set_room**: Select which Sonos room/zone to control
-- **get_current_room**: Get information about the currently selected room
+- **get_room_status**: Get information about a specific Sonos room and its playback state
 - **list_available_rooms**: Discover all Sonos devices on the network
 
 ### Playback Control
-- **play_favorite**: Play a Sonos favorite by name
-- **play_uri**: Play media from a URI (Spotify, radio streams, etc.)
-- **play**: Start or resume playback
-- **pause**: Pause playback
-- **stop**: Stop playback
-- **next_track**: Skip to the next track
-- **previous_track**: Go back to the previous track
+- **play_favorite**: Play a Sonos favorite by name in a specific room
+- **play_uri**: Play media from a URI (Spotify, radio streams, etc.) in a specific room
+- **play**: Start or resume playback in a specific room
+- **pause**: Pause playback in a specific room
+- **stop**: Stop playback in a specific room
+- **next_track**: Skip to the next track in a specific room
+- **previous_track**: Go back to the previous track in a specific room
 
 ### Volume Control
-- **set_volume**: Set volume to a specific level (0-100)
-- **adjust_volume**: Increase or decrease volume by a relative amount
-- **toggle_mute**: Toggle mute on/off
+- **set_volume**: Set volume to a specific level (0-100) in a specific room
+- **adjust_volume**: Increase or decrease volume by a relative amount in a specific room
+- **toggle_mute**: Toggle mute on/off in a specific room
 
 ### Information
-- **list_favorites**: List all available Sonos favorites
+- **list_favorites**: List all available Sonos favorites from a specific room
 
 ## Running the MCP Server
 
@@ -123,21 +122,22 @@ poetry install
 #### Stdio Mode (for Claude Desktop and similar clients)
 
 ```bash
-python scripts/run_mcp_server.py --room "Kitchen" --transport stdio
+python scripts/run_mcp_server.py --transport stdio
 ```
 
 #### HTTP Mode (for web-based clients)
 
 ```bash
-python scripts/run_mcp_server.py --room "Living Room" --transport http --host 127.0.0.1 --port 8000
+python scripts/run_mcp_server.py --transport http --host 127.0.0.1 --port 8000
 ```
 
 ### Configuration Options
 
-- `--room`: Default Sonos room to control (default: "Kitchen")
 - `--transport`: Transport mode - "stdio" or "http" (default: "stdio")
 - `--host`: Host to bind to for HTTP mode (default: "127.0.0.1")
 - `--port`: Port to listen on for HTTP mode (default: 8000)
+
+**Note**: The server no longer requires a default room parameter. Each tool accepts a `room` parameter to specify which Sonos room to control.
 
 ## Using with Claude Desktop
 
@@ -153,7 +153,6 @@ To use the MCP server with Claude Desktop, add the following to your Claude Desk
       "command": "python",
       "args": [
         "/path/to/SonosPhone/scripts/run_mcp_server.py",
-        "--room", "Kitchen",
         "--transport", "stdio"
       ]
     }
@@ -161,30 +160,33 @@ To use the MCP server with Claude Desktop, add the following to your Claude Desk
 }
 ```
 
-After restarting Claude Desktop, you can ask Claude to control your Sonos:
+After restarting Claude Desktop, you can ask Claude to control your Sonos. **You specify the room in your request**, not in the configuration:
 
-- "Set the room to Living Room"
-- "Play my Jazz Standards favorite"
-- "Increase the volume by 10"
-- "What's currently playing?"
-- "Skip to the next track"
+- "Play my Jazz Standards favorite in the Living Room"
+- "Increase the volume by 10 in the Kitchen"
+- "What's currently playing in the Bedroom?"
+- "Skip to the next track in the Office"
 
 ## Example Usage
 
 Once connected to an MCP client (like Claude), you can use natural language commands:
 
 ```
-You: "Set the room to Kitchen and play my Morning Jazz playlist"
-Claude: [Uses set_room and play_favorite tools]
-        "I've set the room to Kitchen and started playing Morning Jazz."
+You: "Play my Morning Jazz playlist in the Kitchen"
+Claude: [Uses play_favorite tool with room="Kitchen"]
+        "I've started playing Morning Jazz in the Kitchen."
 
-You: "Turn the volume up a bit"
-Claude: [Uses adjust_volume tool]
-        "I've increased the volume by 10."
+You: "Turn the volume up a bit in the Living Room"
+Claude: [Uses adjust_volume tool with room="Living Room"]
+        "I've increased the volume by 10 in the Living Room."
 
 You: "What rooms are available?"
 Claude: [Uses list_available_rooms tool]
         "I found these Sonos rooms: Kitchen, Living Room, Bedroom, Office"
+
+You: "Pause the music in the Kitchen and play something in the Bedroom"
+Claude: [Uses pause tool with room="Kitchen", then play_favorite with room="Bedroom"]
+        "I've paused the music in the Kitchen and started playing in the Bedroom."
 ```
 
 ## Security Considerations
